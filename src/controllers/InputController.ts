@@ -44,4 +44,30 @@ export class InputController {
   public update(deltaTime: number) {
     // Update camera position based on input
   }
+
+  private initPointerLock() {
+    this.canvas.addEventListener('click', () => {
+      this.canvas.requestPointerLock();
+    });
+
+    document.addEventListener('pointerlockchange', this.onPointerLockChange);
+  }
+
+  private onPointerLockChange = () => {
+    if (document.pointerLockElement === this.canvas) {
+      // Pointer is locked, enable controls
+      this.enableControls();
+    } else {
+      // Pointer is unlocked, disable controls
+      this.disableControls();
+    }
+  };
+
+  private enableControls() {
+    // Enable mouse movement and keyboard controls
+  }
+
+  private disableControls() {
+    // Disable controls
+  }
 }

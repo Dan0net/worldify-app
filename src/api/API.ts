@@ -1,52 +1,76 @@
+import { ChunkData, UserData } from "../utils/interfaces";
+import { useSessionStore } from "../store/SessionStore";
+
 // api/API.ts
 export class API {
   private apiUrl = import.meta.env.VITE_API_URL;
-  
-  async authenticateUser(email: string, password: string, isLogin: boolean = true): Promise<{ 
-    id: string; 
-    email: string;
-    token: string;
-  }> {
+
+  async fetchJsonHandler(uri, body: any = null, auth = true) {
+    const request = {
+      method: body ? 'POST' : 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+
+    if (auth) {
+      const { jwtToken } = useSessionStore.getState();
+      request.headers['Authorization'] = `Bearer ${jwtToken}`;
+    }
+
+    if (body) {
+      request['body'] = JSON.stringify(body);
+    }
+
     try {
-      const response = await fetch(isLogin ? `${this.apiUrl}/users/login` : `${this.apiUrl}/users/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      })
+      const response = await fetch(uri, request);
 
       if (!response.ok) {
         // If the response status code is not in the 200-299 range
         const errorData = await response.json();
         const errorMessage = errorData.error || 'Unknown error occurred during login.';
-        throw new Error(`Login failed: ${errorMessage}`);
+        throw new Error(`Request failed: ${errorMessage}`);
       }
 
       const data = await response.json();
 
-      if (!data.user?.id || !data.user?.email || !data.token) {
-        throw new Error('Invalid response from server: Missing userId or token.');
-      }
-
-      return { id: data.user.id, email: data.user.email, token: data.token };
+      return data;
     } catch (error) {
       // Handle network errors or other unexpected exceptions
-      throw new Error(`Login error: ${(error as Error).message}`);
+      throw new Error(`Request error: ${(error as Error).message}`);
     }
   }
 
-  async login(email: string, password: string): Promise<{ id: string; token: string }> {
+  async authenticateUser(email: string, password: string, isLogin: boolean = true): Promise<UserData> {
+    //todo plaintext password?!?!
+
+    const data = await this.fetchJsonHandler(
+      isLogin ? `${this.apiUrl}/users/login` : `${this.apiUrl}/users/register`,
+      { email, password },
+      false
+    )
+
+    // if (!data.user?.id || !data.user?.email || !data.token) {
+    //   throw new Error('Invalid response from server: Missing userId or token.');
+    // }
+
+    return data;
+  }
+
+  async login(email: string, password: string): Promise<UserData> {
     return this.authenticateUser(email, password, true);
   }
 
-  async register(email: string, password: string): Promise<{ id: string; token: string }> {
+  async register(email: string, password: string): Promise<UserData> {
     return this.authenticateUser(email, password, false);
   }
 
-  async getChunk(x: number, y: number, z: number): Promise<Uint8Array> {
-    // Fetch chunk data
-    return new Uint8Array();
+  async getChunk(chunkCoord): Promise<ChunkData> {
+    const data = this.fetchJsonHandler(
+      `${this.apiUrl}/chunks/${chunkCoord.x}/${chunkCoord.y}/${chunkCoord.z}`
+    )
+
+    return data;
   }
 
   async getChunksInRange(

@@ -22,8 +22,8 @@ export const LoginUI: React.FC = () => {
   const handleAuth = async (isLogin = true) => {
     setErrorMessage(''); // Clear previous errors
     try {
-      const {id, email: _email, token} = await api.authenticateUser(emailInput, password, isLogin);
-      setSession(id, _email, token);
+      const userData = await api.authenticateUser(emailInput, password, isLogin);
+      setSession(userData);
       // Proceed to the next step in your app
     } catch (error) {
       setErrorMessage((error as Error).message);

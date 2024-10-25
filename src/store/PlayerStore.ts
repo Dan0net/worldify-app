@@ -1,19 +1,23 @@
 // store/PlayerStore.ts
+import { Vector3 } from 'three';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import * as THREE from 'three';
+import { subscribeWithSelector } from 'zustand/middleware'
+import { ChunkCoord } from '../utils/interfaces';
 
 type PlayerStore = {
-  position: THREE.Vector3;
+  chunkCoord: ChunkCoord;
+  position: Vector3;
   buildPreset: string;
-  setPosition: (position: THREE.Vector3) => void;
+  setPosition: (position: Vector3) => void;
   setBuildPreset: (preset: string) => void;
 };
 
 export const usePlayerStore = create<PlayerStore>()(
-  persist(
+  subscribeWithSelector(persist(
     (set) => ({
-      position: new THREE.Vector3(),
+      chunkCoord: {x: 0, y: 0, z: 0},
+      position: new Vector3(),
       buildPreset: 'cube',
       setPosition: (position) => set({ position }),
       setBuildPreset: (preset) => set({ buildPreset: preset }),
@@ -21,5 +25,5 @@ export const usePlayerStore = create<PlayerStore>()(
     {
       name: 'player-store',
     }
-  )
+  ))
 );

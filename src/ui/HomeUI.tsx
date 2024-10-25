@@ -2,12 +2,15 @@
 import React, { useState } from 'react';
 import { LoginUI } from './LoginUI';
 import { SettingUI } from './SettingsUI';
+import { useGameStore } from '../store/GameStore';
 
 export const HomeUI: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
+  const {hasStarted, setHasStarted} = useGameStore();
 
   const handleStart = () => {
-    // Implement pointer lock initiation
+    console.log(hasStarted)
+    setHasStarted(true);
   };
 
   const handleShowSettings = (isShowSettings: boolean): void => {
@@ -16,7 +19,7 @@ export const HomeUI: React.FC = () => {
   };
 
   return (
-    <div id="home-ui">
+    <div id="home-ui" hidden={hasStarted}>
       <div id='blur'></div>
       <div id='home-ui-container'>
       <div className='button-container'>
