@@ -1,7 +1,13 @@
-import { AmbientLight, BoxGeometry, Clock, DirectionalLight, FogExp2, Mesh, MeshStandardMaterial, NoToneMapping, PCFSoftShadowMap, PerspectiveCamera, Raycaster, Scene, WebGLRenderer } from 'three';
+import { AmbientLight, BoxGeometry, BufferGeometry, Clock, DirectionalLight, FogExp2, Mesh, MeshStandardMaterial, NoToneMapping, PCFSoftShadowMap, PerspectiveCamera, Raycaster, Scene, WebGLRenderer } from 'three';
 import { Player } from './Player';
 import { ChunkCoordinator } from './ChunkCoordinator';
 import { Builder } from '../builder/Builder';
+
+import {
+  computeBoundsTree, disposeBoundsTree,
+  computeBatchedBoundsTree, disposeBatchedBoundsTree, acceleratedRaycast,
+} from 'three-mesh-bvh';
+import { BatchedMesh } from 'three/src/Three.js';
 
 export class Game {
 
@@ -54,6 +60,19 @@ export class Game {
       1000 // Far clipping plane
     );
     this.camera.position.set(0, 1.6, 5); // Adjust as needed
+
+    //BVH
+    
+    // Add the extension functions
+    BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+    BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+    Mesh.prototype.raycast = acceleratedRaycast;
+    
+    BatchedMesh.prototype.computeBoundsTree = computeBatchedBoundsTree;
+    BatchedMesh.prototype.disposeBoundsTree = disposeBatchedBoundsTree;
+    BatchedMesh.prototype.raycast = acceleratedRaycast;
+    ///
+
 
     this.player = new Player(this.scene, this.camera);
     this.chunkCoordinator = new ChunkCoordinator(this.scene);
