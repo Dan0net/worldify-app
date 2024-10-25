@@ -138,3 +138,11 @@ button:focus-visible {
   backdrop-filter: blur(6px);
   z-index: 1;
 }
+
+#login-ui p, #login-ui button, #login-ui input {
+  margin: 0 10px;
+}
+
+#login-ui p {
+  display: inline;
+}

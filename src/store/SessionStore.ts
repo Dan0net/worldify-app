@@ -3,19 +3,25 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 type SessionStore = {
-  username: string | null;
+  userId: string | null;
+  userEmail: string | null;
   jwtToken: string | null;
   isLoggedIn: boolean;
-  setJwtToken: (token: string) => void;
+  setSession: (userId: string, userEmail: string, jwtToken: string) => void;
+  unsetSession: () => void;
 };
 
 export const useSessionStore = create<SessionStore>()(
   persist(
     (set) => ({
-      username: null,
+      userId: null,
+      userEmail: null,
       jwtToken: null,
       isLoggedIn: false,
-      setJwtToken: (token) => set({ jwtToken: token, isLoggedIn: !!token }),
+      setSession: (userId, userEmail, jwtToken) => 
+        set({ jwtToken, userId, userEmail, isLoggedIn: !!jwtToken }),
+      unsetSession: () =>
+        set({ userId: null, userEmail: null, jwtToken: null, isLoggedIn: false }),
     }),
     {
       name: 'session-store',

@@ -4,27 +4,70 @@ import { useSessionStore } from '../store/SessionStore';
 import { API } from '../api/API';
 
 export const LoginUI: React.FC = () => {
-  const [username, setUsername] = useState('');
+  const [emailInput, setEmailInput] = useState('');
   const [password, setPassword] = useState('');
-  const { setJwtToken } = useSessionStore();
+  const { setSession, unsetSession, isLoggedIn, userEmail } = useSessionStore();
+  const [errorMessage, setErrorMessage] = useState('');
+
   const api = new API();
 
   const handleLogin = async () => {
-    const token = await api.login(username, password);
-    setJwtToken(token);
+    handleAuth(true)
   };
 
   const handleRegister = async () => {
-    const token = await api.register(username, password);
-    setJwtToken(token);
+    handleAuth(false)
   };
+
+  const handleAuth = async (isLogin = true) => {
+    setErrorMessage(''); // Clear previous errors
+    try {
+      const {id, email: _email, token} = await api.authenticateUser(emailInput, password, isLogin);
+      setSession(id, _email, token);
+      // Proceed to the next step in your app
+    } catch (error) {
+      setErrorMessage((error as Error).message);
+    }
+  };
+
+  const handleLogout = () => {
+    unsetSession();
+    setEmailInput('');
+    setPassword('');
+  }
 
   return (
     <div id="login-ui">
-      <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" />
-      <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" type="password" />
-      <button onClick={handleLogin}>Login</button>
-      <button onClick={handleRegister}>Register</button>
+      {!isLoggedIn ? (
+        <>
+        <form onSubmit={(e) => e.preventDefault()}>
+          <input 
+            value={emailInput} 
+            onChange={(e) => setEmailInput(e.target.value)} 
+            placeholder="Email" 
+            type="Email"
+            autoComplete="email" 
+            required
+            />
+            <input 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
+            placeholder="Password" 
+            type="password" 
+            autoComplete="password" 
+            required
+            />
+          <button onClick={handleLogin}>Login</button>
+          <button onClick={handleRegister}>Register</button>
+          </form>
+        </>
+      ) : (
+        <>
+          <p>{userEmail}</p>
+          <button onClick={handleLogout}>Logout</button>
+        </>
+      )}
+      {errorMessage && <div className="error-message">{errorMessage}</div>}
     </div>
   );
 };
