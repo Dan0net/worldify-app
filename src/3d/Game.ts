@@ -59,7 +59,7 @@ export class Game {
       0.1, // Near clipping plane
       1000 // Far clipping plane
     );
-    this.camera.position.set(0, 1.6, 5); // Adjust as needed
+    this.camera.position.set(8, 6, 8); // Adjust as needed
 
     //BVH
     
@@ -74,7 +74,7 @@ export class Game {
     ///
 
 
-    this.player = new Player(this.scene, this.camera);
+    this.player = new Player(this.canvas, this.scene, this.camera);
     this.chunkCoordinator = new ChunkCoordinator(this.scene);
     this.builder = new Builder(this.scene);
 

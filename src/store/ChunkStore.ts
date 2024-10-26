@@ -4,6 +4,7 @@ import { persist, PersistOptions } from 'zustand/middleware';
 import { ChunkData } from '../utils/interfaces';
 
 type ChunkStore = {
+  currentChunk: ChunkData | null;
   chunks: Map<string, ChunkData>;
   addChunk: (key: string, chunk: ChunkData) => void;
   removeChunk: (key: string) => void;
@@ -14,12 +15,12 @@ type SerializedChunkStore = {
 };
 
 export const useChunkStore = create<ChunkStore>()(
-  // persist(
+  persist(
     (set) => ({
+      currentChunk: null,
       chunks: new Map(),
       addChunk: (key, chunk) =>
         set((state) => {
-          console.log(state.chunks)
           state.chunks.set(key, chunk);
           return { chunks: state.chunks };
         }),
@@ -29,33 +30,33 @@ export const useChunkStore = create<ChunkStore>()(
           return { chunks: state.chunks };
         }),
     }),
-    // {
-    //   name: 'chunk-store',
-    //   serialize: (state) => {
-    //     const chunksArray = Array.from(state.state.chunks.entries());
-    //     console.log({ chunks: chunksArray })
-    //     return JSON.stringify({ 
-    //       ...state,
-    //       state: {
-    //         ...state.state,
-    //         chunks: chunksArray,
-    //       }, 
-    //     });
-    //   },
-    //   deserialize: (str) => {
-    //     console.log(str)
-    //     const data = JSON.parse(str);
-    //     console.log(data)
-    //     const chunks = new Map<string, ChunkData>(data.state.chunks);
-    //     console.log(chunks)
-    //     return {
-    //       ...data,
-    //       state: {
-    //         ...data.state,
-    //         chunks,
-    //       },
-    //     };
-    //   },
-    // } as PersistOptions<ChunkStore, SerializedChunkStore>
-  // )
+    {
+      name: 'chunk-store',
+      serialize: (state) => {
+        const chunksArray = Array.from(state.state.chunks.entries());
+        console.log({ chunks: chunksArray })
+        return JSON.stringify({ 
+          ...state,
+          state: {
+            ...state.state,
+            chunks: chunksArray,
+          }, 
+        });
+      },
+      deserialize: (str) => {
+        console.log(str)
+        const data = JSON.parse(str);
+        console.log(data)
+        const chunks = new Map<string, ChunkData>(data.state.chunks);
+        console.log(chunks)
+        return {
+          ...data,
+          state: {
+            ...data.state,
+            chunks,
+          },
+        };
+      },
+    } as PersistOptions<ChunkStore, SerializedChunkStore>
+  )
 );

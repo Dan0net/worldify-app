@@ -25,6 +25,8 @@ export class ChunkCoordinator {
 
     const { chunkCoord } = usePlayerStore.getState();
     this.updateFirstInitialChunk(chunkCoord);
+
+    this.updateChunksInViewRange(chunkCoord);
   }
 
   private async getOrLoadChunk(chunkCoord: ChunkCoord): Promise<ChunkData> {

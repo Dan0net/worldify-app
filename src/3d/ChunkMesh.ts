@@ -7,7 +7,7 @@ import { TerrainMaterial } from '../material/TerrainMaterial';
 
 export class ChunkMesh extends Mesh {
 
-  constructor(private chunkData: ChunkData) {
+  constructor(chunkData: ChunkData) {
 	super(
 		new BufferGeometry(),
 		TerrainMaterial.getInstance()
@@ -46,7 +46,7 @@ export class ChunkMesh extends Mesh {
         new Float32Array(),
         new Float32Array(gridFloat32).fill(0),
       )
-	  console.log(data)
+	//   console.log(data)
 
     const geoBuffer = this.generateMesh(
 		data
@@ -58,8 +58,8 @@ export class ChunkMesh extends Mesh {
 
   generateMesh( data: any ): BufferGeometry {
 
-	console.log(data)
-	console.log('aaa')
+	// console.log(data)
+	// console.log('aaa')
 
 		const {
 			indices,
@@ -71,7 +71,7 @@ export class ChunkMesh extends Mesh {
 			normal
 		} = data;
 
-		return new PlaneGeometry(32,32,32);
+		// return new PlaneGeometry(32,32,32);
 
 		// if ( indices.length === 0 ) return;
 

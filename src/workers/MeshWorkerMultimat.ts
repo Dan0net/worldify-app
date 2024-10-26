@@ -258,7 +258,7 @@ export function generateMeshWorker(
 			normaliseVertexNormals(i, 3, [3, 2, 0]);
 		}
 
-		console.log(indices)
+		// console.log(indices)
 
 		return {
 					indices,
