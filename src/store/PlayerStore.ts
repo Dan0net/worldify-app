@@ -7,23 +7,23 @@ import { ChunkCoord } from '../utils/interfaces';
 
 type PlayerStore = {
   chunkCoord: ChunkCoord;
-  position: Vector3;
   buildPreset: string;
-  setPosition: (position: Vector3) => void;
+  setPlayerChunkCoord: (chunkCoord: ChunkCoord) => void;
   setBuildPreset: (preset: string) => void;
 };
 
 export const usePlayerStore = create<PlayerStore>()(
-  subscribeWithSelector(persist(
+  subscribeWithSelector(
+    // persist(
     (set) => ({
       chunkCoord: {x: 0, y: 0, z: 0},
-      position: new Vector3(),
       buildPreset: 'cube',
-      setPosition: (position) => set({ position }),
+      setPlayerChunkCoord: (chunkCoord) => set({ chunkCoord }),
       setBuildPreset: (preset) => set({ buildPreset: preset }),
     }),
-    {
-      name: 'player-store',
-    }
-  ))
+    // {
+    //   name: 'player-store',
+    // }
+  )
+// )
 );

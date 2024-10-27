@@ -15,7 +15,7 @@ type SerializedChunkStore = {
 };
 
 export const useChunkStore = create<ChunkStore>()(
-  persist(
+  // persist(
     (set) => ({
       currentChunk: null,
       chunks: new Map(),
@@ -30,33 +30,33 @@ export const useChunkStore = create<ChunkStore>()(
           return { chunks: state.chunks };
         }),
     }),
-    {
-      name: 'chunk-store',
-      serialize: (state) => {
-        const chunksArray = Array.from(state.state.chunks.entries());
-        console.log({ chunks: chunksArray })
-        return JSON.stringify({ 
-          ...state,
-          state: {
-            ...state.state,
-            chunks: chunksArray,
-          }, 
-        });
-      },
-      deserialize: (str) => {
-        console.log(str)
-        const data = JSON.parse(str);
-        console.log(data)
-        const chunks = new Map<string, ChunkData>(data.state.chunks);
-        console.log(chunks)
-        return {
-          ...data,
-          state: {
-            ...data.state,
-            chunks,
-          },
-        };
-      },
-    } as PersistOptions<ChunkStore, SerializedChunkStore>
-  )
+    // {
+    //   name: 'chunk-store',
+    //   serialize: (state) => {
+    //     const chunksArray = Array.from(state.state.chunks.entries());
+    //     console.log({ chunks: chunksArray })
+    //     return JSON.stringify({ 
+    //       ...state,
+    //       state: {
+    //         ...state.state,
+    //         chunks: chunksArray,
+    //       }, 
+    //     });
+    //   },
+    //   deserialize: (str) => {
+    //     console.log(str)
+    //     const data = JSON.parse(str);
+    //     console.log(data)
+    //     const chunks = new Map<string, ChunkData>(data.state.chunks);
+    //     console.log(chunks)
+    //     return {
+    //       ...data,
+    //       state: {
+    //         ...data.state,
+    //         chunks,
+    //       },
+    //     };
+    //   },
+    // } as PersistOptions<ChunkStore, SerializedChunkStore>
+  // )
 );

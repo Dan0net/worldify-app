@@ -5,6 +5,7 @@ import { persist } from 'zustand/middleware';
 type SettingStore = {
   viewDistance: number;
   mouseSensitivity: number;
+  firstPerson: boolean;
   shadowsEnabled: boolean;
   setViewDistance: (distance: number) => void;
   setShadowsEnabled: (enabled: boolean) => void;
@@ -15,6 +16,7 @@ export const useSettingStore = create<SettingStore>()(
     (set) => ({
       viewDistance: 2,
       mouseSensitivity: 0.0016,
+      firstPerson: true,
       shadowsEnabled: true,
       setViewDistance: (distance) => set({ viewDistance: distance }),
       setShadowsEnabled: (enabled) => set({ shadowsEnabled: enabled }),

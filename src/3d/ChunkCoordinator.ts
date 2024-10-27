@@ -1,17 +1,21 @@
 // 3d/ChunkCoordinator.ts
 import { Chunk } from './Chunk';
-import { Scene, Vector3 } from 'three';
+import { Group, Mesh, MeshStandardMaterial, Scene, Vector3 } from 'three';
 import { useSettingStore } from '../store/SettingStore';
 import { useChunkStore } from '../store/ChunkStore';
 import { usePlayerStore } from '../store/PlayerStore';
 import { API } from '../api/API';
 import { ChunkCoord, ChunkData } from '../utils/interfaces';
 import { getChunkKey } from '../utils/functions';
+import { MeshBVH, MeshBVHHelper, StaticGeometryGenerator } from 'three-mesh-bvh';
+import { useGameStore } from '../store/GameStore';
 
 export class ChunkCoordinator {
   private pendingRequests = new Map<string, Promise<ChunkData>>();
   private api = new API();
   private chunks = new Map<string, Chunk>();
+  public castableChunkMeshs = new Group();
+  public castableCollider: Mesh = new Mesh();
 
   private unsubPlayerStore: () => void;
 
@@ -19,18 +23,26 @@ export class ChunkCoordinator {
     this.unsubPlayerStore = usePlayerStore.subscribe(
       (state) => state.chunkCoord,
       (chunkCoord, previousChunkCoord) => {
-        if (chunkCoord !== previousChunkCoord) this.updateChunksInViewRange(chunkCoord);
+        if (chunkCoord.x !== previousChunkCoord.x || chunkCoord.y !== previousChunkCoord.y || chunkCoord.z !== previousChunkCoord.z) {
+          console.log(chunkCoord, previousChunkCoord);
+          this.createChunksInRange(chunkCoord);
+        }
       }
     );
 
     const { chunkCoord } = usePlayerStore.getState();
-    this.updateFirstInitialChunk(chunkCoord);
 
-    this.updateChunksInViewRange(chunkCoord);
+    this.createFirstChunk(chunkCoord)
+    // this.createChunksInRange(chunkCoord);
+
+    this.scene.add(this.castableChunkMeshs);
   }
 
-  private async getOrLoadChunk(chunkCoord: ChunkCoord): Promise<ChunkData> {
+  private async getOrLoadChunk(chunkCoord: ChunkCoord): Promise<ChunkData | void> {
     const chunkKey = getChunkKey(chunkCoord);
+
+    if(this.chunks.has(chunkKey) || this.pendingRequests.has(chunkKey)) return Promise.resolve();
+
     if (Object.keys(useChunkStore.getState().chunks).length > 0) {
       const existingChunk = useChunkStore.getState().chunks.get(chunkKey);
       if (existingChunk) {
@@ -39,19 +51,13 @@ export class ChunkCoordinator {
       }
     }
 
-    if (this.pendingRequests.has(chunkKey)) {
-      console.log('chunk request already pending', chunkCoord)
-      return await this.pendingRequests.get(chunkKey)!;
-    }
-    
     console.log('requesting chunk from api', chunkCoord)
     const chunkPromise = this.api.getChunk(chunkCoord).then((chunkData) => {
 
       useChunkStore.getState().addChunk(chunkKey, chunkData);
 
       return chunkData;
-    })
-      .finally(() => {
+    }).finally(() => {
         // Remove from pendingRequests after completion
         this.pendingRequests.delete(chunkKey);
       });
@@ -61,14 +67,18 @@ export class ChunkCoordinator {
     return await chunkPromise;
   }
 
-  private async updateFirstInitialChunk(chunkCoord: ChunkCoord) {
+  private async createFirstChunk(chunkCoord: ChunkCoord) {
     const chunkData = await this.getOrLoadChunk(chunkCoord);
-    const chunkKey = getChunkKey(chunkCoord);
 
-    this.chunks.set(chunkKey, new Chunk(this.scene, chunkData));
+    if(chunkData) {
+      this.addChunk(chunkData)
+      useGameStore.getState().setHasFirstChunkLoaded(true);
+    } else {
+      throw new Error('First chunk didnt load, panic!');
+    }
   }
 
-  private async updateChunksInViewRange(baseChunkCoord: ChunkCoord) {
+  private async createChunksInRange(baseChunkCoord: ChunkCoord) {
     const { viewDistance } = useSettingStore.getState();
 
     const chunksToLoad: ChunkCoord[] = [];
@@ -88,33 +98,42 @@ export class ChunkCoordinator {
 
       // Add chunks to scene
       for (const chunkData of chunkDatas) {
-        const chunkCoord = getChunkKey({x: chunkData.x, y: chunkData.y, z: chunkData.z});
-
-        this.chunks.set(chunkCoord, new Chunk(this.scene, chunkData));
-
-        console.log(chunkCoord);
-        // if (!this.scene.getObjectByName(chunk.mesh.name)) {
-        //   this.scene.add(chunk.mesh);
-        // }
+        if(chunkData) this.addChunk(chunkData)
       }
-
-      // this.unloadFarChunks(playerChunkCoord, viewDistance);
     }
-
-    // console.log(gridUint8, gridFloat32);
   }
 
-  // private async loadChunk(x: number, y: number, z: number) {
-  //   const key = `${x}-${y}-${z}`;
-  //   if (this.chunks.has(key)) return;
-  //   // const voxelData = await this.api.getChunk(x, y, z);
-  //   // const chunk = new Chunk(x, y, z, voxelData);
-  //   // chunk.addToScene(this.scene);
-  //   // this.chunks.set(key, chunk);
-  //   useChunkStore.setState((state) => ({
-  //     // chunks: new Map(state.chunks).set(key, chunk),
-  //   }));
-  // }
+  private addChunk(chunkData: ChunkData) {
+    const chunkKey = getChunkKey({ x: chunkData.x, y: chunkData.y, z: chunkData.z });
+    console.log('adding ', chunkKey)
+
+    const chunk = new Chunk(this.scene, chunkData);
+    this.chunks.set(chunkKey, chunk);
+
+    this.castableChunkMeshs.attach(chunk.mesh);
+    // this.scene.add(chunk.mesh);
+
+    this.updateCollider();
+  }
+
+  async updateCollider() {
+    const staticGenerator = new StaticGeometryGenerator(this.castableChunkMeshs);
+    staticGenerator.attributes = ['position'];
+    staticGenerator.applyWorldTransforms = true;
+
+    const mergedGeometry = staticGenerator.generate();
+    mergedGeometry.boundsTree = new MeshBVH(mergedGeometry);
+
+    const mat = new MeshStandardMaterial();
+    this.castableCollider = new Mesh(mergedGeometry, mat);
+    mat.wireframe = true;
+    mat.opacity = 0.5;
+    mat.transparent = true;
+    mat.needsUpdate = true;
+
+    const visualizer = new MeshBVHHelper(this.castableCollider, 10);
+    this.scene.add(visualizer)
+  }
 
   dispose() {
     this.unsubPlayerStore();

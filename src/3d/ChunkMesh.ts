@@ -4,6 +4,7 @@ import { ChunkData } from '../utils/interfaces';
 import { base64ToUint8Array, decompressUint8ToFloat32 } from '../utils/functions';
 import { generateMeshWorker } from '../workers/MeshWorkerMultimat';
 import { TerrainMaterial } from '../material/TerrainMaterial';
+import { TERRAIN_SCALE } from '../utils/constants';
 
 export class ChunkMesh extends Mesh {
 
@@ -13,26 +14,10 @@ export class ChunkMesh extends Mesh {
 		TerrainMaterial.getInstance()
 	);
 
-	this.scale.set( 0.5, 0.5, 0.5 );
-
-	this.position.x = chunkData.x;
-	this.position.y = chunkData.y;
-	this.position.z = chunkData.z;
-
 	this.castShadow = true;
 	this.receiveShadow = true;
 
-	this.updateWorldMatrix(false, false);
-	this.matrixAutoUpdate = false;
-
 	this.setChunkData(chunkData)
-
-    // console.log(gridFloat32);
-
-    // const geometry = new PlaneGeometry(4, 4, 4);
-    // const material = new MeshStandardMaterial({ color: 0x0077ff });
-    // this.mesh = new Mesh(geometry, material);
-    // scene.add(this.mesh);
   }
 
   async setChunkData(chunkData: ChunkData) {

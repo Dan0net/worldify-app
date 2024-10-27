@@ -8,6 +8,7 @@ import {
   computeBatchedBoundsTree, disposeBatchedBoundsTree, acceleratedRaycast,
 } from 'three-mesh-bvh';
 import { BatchedMesh } from 'three/src/Three.js';
+import Stats from 'three/examples/jsm/libs/stats.module.js';
 
 export class Game {
 
@@ -23,6 +24,8 @@ export class Game {
   private chunkCoordinator: ChunkCoordinator;
   private builder: Builder;
 
+  private stats: Stats;
+
   private cube: Mesh;
   private material: MeshStandardMaterial;
   private geometry: BoxGeometry;
@@ -36,7 +39,7 @@ export class Game {
       // return;
     }
 
-    this.clock = new Clock(false);
+    this.clock = new Clock(true);
     this.scene = new Scene();
     this.raycaster = new Raycaster();
     this.renderer = new WebGLRenderer({
@@ -59,7 +62,6 @@ export class Game {
       0.1, // Near clipping plane
       1000 // Far clipping plane
     );
-    this.camera.position.set(8, 6, 8); // Adjust as needed
 
     //BVH
     
@@ -73,10 +75,13 @@ export class Game {
     BatchedMesh.prototype.raycast = acceleratedRaycast;
     ///
 
-
-    this.player = new Player(this.canvas, this.scene, this.camera);
     this.chunkCoordinator = new ChunkCoordinator(this.scene);
+    this.player = new Player(this.canvas, this.scene, this.camera, this.chunkCoordinator);
     this.builder = new Builder(this.scene);
+
+    this.stats = new Stats();
+    document.body.appendChild( this.stats.dom );
+    this.stats.dom.id = 'stats';
 
     // Add lights to the scene
     const ambientLight = new AmbientLight(0xffffff, 0.5);
@@ -97,7 +102,7 @@ export class Game {
   }
 
   animate() {
-    requestAnimationFrame(this.animate.bind(this));
+    this.stats.begin();
 
     const delta = this.clock.getDelta();
 
@@ -105,12 +110,16 @@ export class Game {
     this.cube.rotation.x += 0.01;
     this.cube.rotation.y += 0.01;
 
-    // player.update(delta);
+    this.player.update(delta);
     // chunkCoordinator.updateChunksAroundPlayer(camera.position);
     // builder.update(delta);
 
     // Render the scene
     this.renderer.render(this.scene, this.camera);
+
+    this.stats.end();
+
+    requestAnimationFrame(this.animate.bind(this));
   }
 
   // Handle window resize
