@@ -27,14 +27,14 @@ export class TerrainMaterial extends MeshStandardMaterial {
   constructor() {
     super({
       map: new Texture(),
-      // normalMap: new Texture(),
-      // normalMapType: ObjectSpaceNormalMap,
+      normalMap: new Texture(),
+      normalMapType: ObjectSpaceNormalMap,
       // color: new Color(1,0,0),
       toneMapped: false,
       defines: {
         // 'USE_MAP': '',
         // 'USE_UV': '',
-        // 'USE_SHADOWMAP': ''
+        'USE_SHADOWMAP': ''
       },
     });
 
@@ -44,10 +44,12 @@ export class TerrainMaterial extends MeshStandardMaterial {
       this._shader = shader;
 
       shader.uniforms.mapArray = {
-        // value: textures["albedo"]
-        value: dummyDataArrayTexture(),
+        value: dummyDataArrayTexture()
       };
-      shader.uniforms.repeatScale = { value: 1.0 / 8.0 };
+      shader.uniforms.normalArray = {
+        value: dummyDataArrayTexture()
+      };
+      shader.uniforms.repeatScale = { value: 1.0 / 6.0 };
 
       shader.vertexShader =
         `
@@ -186,7 +188,8 @@ export class TerrainMaterial extends MeshStandardMaterial {
               }
 
               vec4 getTriPlanarTexture(sampler2DArray tex) {
-                  return getTriTextureBasic(tex);
+                  // return getTriTextureBasic(tex);
+                  return getTriPlanarSmoothBlend(tex);
               }
               `
         );
@@ -199,10 +202,10 @@ export class TerrainMaterial extends MeshStandardMaterial {
       shader.fragmentShader = shader.fragmentShader.replace(
         "vec4 diffuseColor = vec4( diffuse, opacity );",
         `
-          // vec4 diffuseColor =  vec4( getTriPlanarTexture(mapArray).rgb, opacity );
+          vec4 diffuseColor =  vec4( getTriPlanarTexture(mapArray).rgb, opacity );
           // vec4 diffuseColor =  vec4(.5,.5,.5, 1.0);
           // vec4 diffuseColor = vec4(texture(map, vPos.xz * repeatScale).rgb, 1.0);
-          vec4 diffuseColor = vec4(texture(mapArray, vec3(0,0, 0)).rgb , 1.0);
+          // vec4 diffuseColor = vec4(texture(mapArray, vec3(vPos.xz * repeatScale, 1)).rgb , 1.0);
           `
       );
 
@@ -215,8 +218,8 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
               vec3 q0 = dFdx( - vViewPosition.xyz );
               vec3 q1 = dFdy( - vViewPosition.xyz );
-              vec2 st0 = dFdx( vec2(1,1) );
-              vec2 st1 = dFdy( vec2(1,1) );
+              vec2 st0 = dFdx( vPos.xz );
+              vec2 st1 = dFdy( vPos.xz );
 
               vec3 N = normalize( vNormal ); // normalized
 
@@ -511,13 +514,11 @@ export class TerrainMaterial extends MeshStandardMaterial {
     this.map = a;
 
     this._shader.uniforms.mapArray = {
-      // value: textures["albedo"]
-      value: dummyDataArrayTexture(),
+      value: textures["albedo"]
     };
-
-    // this._shader.uniforms.normalArray = {
-    //   value: textures["normal"],
-    // };
+    this._shader.uniforms.normalArray = {
+      value: textures["normal"],
+    };
     // this._shader.uniforms.aoArray = {
     //   value: textures["ao"],
     // };
@@ -541,7 +542,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
       this.loadDataArrayTextures().then(
         ({ textures, metadata, materialIndices }) => {
-          // material.setTextures(textures);
+          material.setTextures(textures);
           // material.needsUpdate = true;
         }
       );
@@ -563,23 +564,28 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
     // Fetch and create textures for each map type
     for (const mapType of mapTypes) {
-      console.log(materialIndices.maps[mapType]);
       const { width, height, channels, layers } = materialIndices.maps[mapType];
-
+      const channelSize = channels.length
+      console.log(mapType, width, height, channelSize, layers)
       // Fetch binary data
       const dataResponse = await fetch(`${apiUrl}/${mapType}.bin`);
       const arrayBuffer = await dataResponse.arrayBuffer();
 
       // Create the typed array from the ArrayBuffer
       let data = new Uint8Array(arrayBuffer);
+      console.log(width* height* layers*channelSize, data.length);
 
       // Determine the texture format
       let format;
-      if (channels === 3) {
+      if (channelSize === 4) {
+        format = RGBAFormat;
+      }
+      if (channelSize === 3) {
         format = RGBFormat;
-      } else if (channels === 1) {
+      } else if (channelSize === 1) {
         format = RedFormat;
       }
+      console.log(channelSize, format)
 
       // Create the DataArrayTexture
       const texture = new DataArrayTexture(data, width, height, layers);
@@ -591,13 +597,15 @@ export class TerrainMaterial extends MeshStandardMaterial {
       texture.magFilter = LinearFilter;
       texture.wrapT = RepeatWrapping;
       texture.wrapS = RepeatWrapping;
-      texture.colorSpace = SRGBColorSpace;
+      // texture.colorSpace = SRGBColorSpace;
       texture.generateMipmaps = true;
+      texture.anisotropy = 8;
       texture.needsUpdate = true;
 
       textures[mapType] = texture;
     }
 
+    // return { 'textures': {'albedo': dummyDataArrayTexture()}, metadata, materialIndices };
     return { textures, metadata, materialIndices };
   }
 }
@@ -607,10 +615,11 @@ function dummyDataArrayTexture() {
   const width = 256;
   const height = 256;
   const layers = 3; // Number of layers in the texture array
+  const channels = 4;
 
   // Create an array to hold pixel data for all layers
   const size = width * height;
-  const data = new Uint8Array(size * 4 * layers); // Assuming RGBA format
+  const data = new Uint8Array(size * channels * layers); // Assuming RGBA format
 
   // Fill each layer with a different color for testing
   for (let layer = 0; layer < layers; layer++) {
@@ -619,13 +628,13 @@ function dummyDataArrayTexture() {
     else if (layer === 1) color.set("green");
     else if (layer === 2) color.set("blue");
 
-    const r = Math.floor( 1);
-    const g = Math.floor(1);
-    const b = Math.floor(1);
-    const a = 1;
+    const r = Math.floor(color.r * 255);
+    const g = Math.floor(color.g * 255);
+    const b = Math.floor(color.b * 255);
+    const a = 255;
 
     for (let i = 0; i < size; i++) {
-      const index = layer * size * 4 + i * 4;
+      const index = layer * size * channels + i * channels;
       data[index] = r;
       data[index + 1] = g;
       data[index + 2] = b;
@@ -639,9 +648,13 @@ function dummyDataArrayTexture() {
   texture.type = UnsignedByteType;
   texture.wrapT = RepeatWrapping;
   texture.wrapS = RepeatWrapping;
+  texture.generateMipmaps = true;
+  texture.anisotropy = 8;
   texture.needsUpdate = true;
 
   // Set texture parameters as needed
-  texture.minFilter = LinearFilter;
-  texture.magFilter = LinearFilter;
+  // texture.minFilter = LinearFilter;
+  // texture.magFilter = LinearFilter;
+
+  return texture
 }

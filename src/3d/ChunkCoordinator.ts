@@ -33,7 +33,7 @@ export class ChunkCoordinator {
     const { chunkCoord } = usePlayerStore.getState();
 
     this.createFirstChunk(chunkCoord)
-    // this.createChunksInRange(chunkCoord);
+    this.createChunksInRange(chunkCoord);
 
     this.scene.add(this.castableChunkMeshs);
     const visualizer = new MeshBVHHelper(this.castableCollider, 10);

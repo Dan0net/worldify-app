@@ -347,7 +347,7 @@ export class Player extends Object3D {
   }
 
   reset() {
-    this.position.set(8, 20, 8);
+    this.position.set(8, 5, 8);
     this.playerVelocity.set(0, 0, 0);
     // camera.position.sub( controls.target );
     // controls.target.copy( player.position );
