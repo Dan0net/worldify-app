@@ -14,3 +14,6 @@ export const PHYSICS_STEPS = 5;
 export const TERRAIN_SCALE = 0.5;
 export const TERRAIN_GRID_SIZE = 30;
 export const TERRAIN_SIZE = TERRAIN_SCALE * TERRAIN_GRID_SIZE;
+
+export const VIEW_DISTANCE_MAX = 4;
+export const VIEW_DISTANCE_MIN = 1;

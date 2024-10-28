@@ -1,103 +1,100 @@
 // 3d/Chunk.ts
-import { BufferAttribute, BufferGeometry, Float32BufferAttribute, Mesh, MeshStandardMaterial, PlaneGeometry, Scene } from 'three';
-import { ChunkData } from '../utils/interfaces';
-import { base64ToUint8Array, decompressUint8ToFloat32 } from '../utils/functions';
-import { generateMeshWorker } from '../workers/MeshWorkerMultimat';
-import { TerrainMaterial } from '../material/TerrainMaterial';
-import { TERRAIN_SCALE } from '../utils/constants';
+import {
+  BufferAttribute,
+  BufferGeometry,
+  Float32BufferAttribute,
+  Mesh,
+  MeshStandardMaterial,
+  PlaneGeometry,
+  Scene,
+} from "three";
+import { ChunkData } from "../utils/interfaces";
+import {
+  base64ToUint8Array,
+  decompressUint8ToFloat32,
+} from "../utils/functions";
+import { generateMeshWorker } from "../workers/MeshWorkerMultimat";
+import { TerrainMaterial } from "../material/TerrainMaterial";
+import { TERRAIN_SCALE } from "../utils/constants";
 
 export class ChunkMesh extends Mesh {
-
   constructor(chunkData: ChunkData) {
-	super(
-		new BufferGeometry(),
-		TerrainMaterial.getInstance()
-	);
+    super(new BufferGeometry(), TerrainMaterial.getInstance());
 
-	this.castShadow = true;
-	this.receiveShadow = true;
+    this.castShadow = true;
+    this.receiveShadow = true;
 
-	this.setChunkData(chunkData)
+    this.setChunkData(chunkData);
   }
 
   async setChunkData(chunkData: ChunkData) {
-	const gridUint8 = base64ToUint8Array(chunkData.grid);
+    const gridUint8 = base64ToUint8Array(chunkData.grid);
     const gridFloat32 = decompressUint8ToFloat32(gridUint8);
 
-	const data = generateMeshWorker(
-        gridFloat32,
-        {x: 32, y: 32, z: 32},
-        new Float32Array(gridFloat32).fill(0),
-        new Float32Array(),
-        new Float32Array(gridFloat32).fill(0),
-      )
-	//   console.log(data)
-
-    const geoBuffer = this.generateMesh(
-		data
+    const data = generateMeshWorker(
+      gridFloat32,
+      { x: 32, y: 32, z: 32 },
+      new Float32Array(gridFloat32).fill(0),
+      new Float32Array(),
+      new Float32Array(gridFloat32).fill(0)
     );
+    //   console.log(data)
 
-	this.geometry.dispose();
-	this.geometry = geoBuffer;
+    const geoBuffer = this.generateMesh(data);
+
+    this.geometry.dispose();
+    this.geometry = geoBuffer;
   }
 
-  generateMesh( data: any ): BufferGeometry {
+  generateMesh(data: any): BufferGeometry {
+    // console.log(data)
+    // console.log('aaa')
 
-	// console.log(data)
-	// console.log('aaa')
+    const { indices, vertices, adjusted, bary, light, lightIndices, normal } =
+      data;
 
-		const {
-			indices,
-			vertices,
-			adjusted,
-			bary,
-			light,
-			lightIndices,
-			normal
-		} = data;
+    // return new PlaneGeometry(32,32,32);
 
-		// return new PlaneGeometry(32,32,32);
+    // if ( indices.length === 0 ) return;
 
-		// if ( indices.length === 0 ) return;
+    //create new geometry
+    const buffer = new BufferGeometry();
 
-		//create new geometry
-		const buffer = new BufferGeometry();
+    const indexBufferAttribute = new BufferAttribute(indices, 1);
+    buffer.setIndex(indexBufferAttribute);
+    indexBufferAttribute.needsUpdate = true;
 
-		const indexBufferAttribute = new BufferAttribute( indices, 1 )
-		buffer.setIndex( indexBufferAttribute );
-		indexBufferAttribute.needsUpdate = true;
+    const positionBufferAttribute = new Float32BufferAttribute(vertices, 3);
+    buffer.setAttribute("position", positionBufferAttribute);
+    positionBufferAttribute.needsUpdate = true;
 
-		const positionBufferAttribute = new Float32BufferAttribute( vertices, 3 )
-		buffer.setAttribute( 'position', positionBufferAttribute );
-		positionBufferAttribute.needsUpdate = true;
-		
-		const adjustedBufferAttribute = new BufferAttribute( adjusted, 3 )
-		buffer.setAttribute( 'adjusted', adjustedBufferAttribute );
-		adjustedBufferAttribute.needsUpdate = true;
+    const adjustedBufferAttribute = new BufferAttribute(adjusted, 3);
+    buffer.setAttribute("adjusted", adjustedBufferAttribute);
+    adjustedBufferAttribute.needsUpdate = true;
 
-		const baryBufferAttribute = new BufferAttribute( bary, 3 )
-		buffer.setAttribute( 'bary', baryBufferAttribute );
-		baryBufferAttribute.needsUpdate = true;
+    const baryBufferAttribute = new BufferAttribute(bary, 3);
+    buffer.setAttribute("bary", baryBufferAttribute);
+    baryBufferAttribute.needsUpdate = true;
 
-		const lightBufferAttribute = new BufferAttribute( light, 1 )
-		buffer.setAttribute( 'light', lightBufferAttribute );
-		lightBufferAttribute.needsUpdate = true;
+    const lightBufferAttribute = new BufferAttribute(light, 1);
+    buffer.setAttribute("light", lightBufferAttribute);
+    lightBufferAttribute.needsUpdate = true;
 
-		// this.lightIndices = lightIndices;
+    // this.lightIndices = lightIndices;
 
-		const normalBufferAttribute = new BufferAttribute( normal, 3 )
-		buffer.setAttribute( 'normal', normalBufferAttribute );
-		normalBufferAttribute.needsUpdate = true;
-		// buffer.computeVertexNormals();
-		
-		// meshObjs.indices.set(indices)
+    const normalBufferAttribute = new BufferAttribute(normal, 3);
+    buffer.setAttribute("normal", normalBufferAttribute);
+    normalBufferAttribute.needsUpdate = true;
+    // buffer.computeVertexNormals();
 
-		// meshObjs.vertices.set(vertices)
+    // meshObjs.indices.set(indices)
 
-		// meshObjs.adjusted.set(adjusted)
+    // meshObjs.vertices.set(vertices)
 
-		buffer.computeBoundsTree();
+    // meshObjs.adjusted.set(adjusted)
 
-		return buffer;
-	}
+    buffer.computeBoundsTree();
+
+    return buffer;
+  }
 }

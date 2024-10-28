@@ -7,19 +7,19 @@ export class API {
 
   async fetchJsonHandler(uri, body: any = null, auth = true) {
     const request = {
-      method: body ? 'POST' : 'GET',
+      method: body ? "POST" : "GET",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-    }
+    };
 
     if (auth) {
       const { jwtToken } = useSessionStore.getState();
-      request.headers['Authorization'] = `Bearer ${jwtToken}`;
+      request.headers["Authorization"] = `Bearer ${jwtToken}`;
     }
 
     if (body) {
-      request['body'] = JSON.stringify(body);
+      request["body"] = JSON.stringify(body);
     }
 
     try {
@@ -28,7 +28,8 @@ export class API {
       if (!response.ok) {
         // If the response status code is not in the 200-299 range
         const errorData = await response.json();
-        const errorMessage = errorData.error || 'Unknown error occurred during login.';
+        const errorMessage =
+          errorData.error || "Unknown error occurred during login.";
         throw new Error(`Request failed: ${errorMessage}`);
       }
 
@@ -41,14 +42,18 @@ export class API {
     }
   }
 
-  async authenticateUser(email: string, password: string, isLogin: boolean = true): Promise<UserData> {
+  async authenticateUser(
+    email: string,
+    password: string,
+    isLogin: boolean = true
+  ): Promise<UserData> {
     //todo plaintext password?!?!
 
     const data = await this.fetchJsonHandler(
       isLogin ? `${this.apiUrl}/users/login` : `${this.apiUrl}/users/register`,
       { email, password },
       false
-    )
+    );
 
     // if (!data.user?.id || !data.user?.email || !data.token) {
     //   throw new Error('Invalid response from server: Missing userId or token.');
@@ -66,34 +71,8 @@ export class API {
   }
 
   async getChunk(chunkCoord): Promise<ChunkData> {
-    const data = this.fetchJsonHandler(
+    return this.fetchJsonHandler(
       `${this.apiUrl}/chunks/${chunkCoord.x}/${chunkCoord.y}/${chunkCoord.z}`
-    )
-
-    return data;
-  }
-
-  async getChunksInRange(
-    x: number,
-    y: number,
-    z: number,
-    range: number
-  ): Promise<Map<string, Uint8Array>> {
-    // Fetch multiple chunks
-    return new Map();
-  }
-
-  async saveChunk(x: number, y: number, z: number, data: Uint8Array): Promise<void> {
-    // Save chunk data
-  }
-
-  async getMaterialConfig(): Promise<any> {
-    // Fetch material configuration
-    return {};
-  }
-
-  async getMaterialTextures(): Promise<ArrayBuffer> {
-    // Fetch texture array
-    return new ArrayBuffer(0);
+    );
   }
 }

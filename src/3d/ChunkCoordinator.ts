@@ -24,7 +24,7 @@ export class ChunkCoordinator {
       (state) => state.chunkCoord,
       (chunkCoord, previousChunkCoord) => {
         if (chunkCoord.x !== previousChunkCoord.x || chunkCoord.y !== previousChunkCoord.y || chunkCoord.z !== previousChunkCoord.z) {
-          console.log(chunkCoord, previousChunkCoord);
+          // console.log(chunkCoord, previousChunkCoord);
           this.createChunksInRange(chunkCoord);
         }
       }
@@ -36,6 +36,8 @@ export class ChunkCoordinator {
     // this.createChunksInRange(chunkCoord);
 
     this.scene.add(this.castableChunkMeshs);
+    const visualizer = new MeshBVHHelper(this.castableCollider, 10);
+    this.scene.add(visualizer)
   }
 
   private async getOrLoadChunk(chunkCoord: ChunkCoord): Promise<ChunkData | void> {
@@ -46,12 +48,12 @@ export class ChunkCoordinator {
     if (Object.keys(useChunkStore.getState().chunks).length > 0) {
       const existingChunk = useChunkStore.getState().chunks.get(chunkKey);
       if (existingChunk) {
-        console.log('loading chunk from storage', chunkCoord)
+        // console.log('loading chunk from storage', chunkCoord)
         return existingChunk;
       }
     }
 
-    console.log('requesting chunk from api', chunkCoord)
+    // console.log('requesting chunk from api', chunkCoord)
     const chunkPromise = this.api.getChunk(chunkCoord).then((chunkData) => {
 
       useChunkStore.getState().addChunk(chunkKey, chunkData);
@@ -105,7 +107,7 @@ export class ChunkCoordinator {
 
   private addChunk(chunkData: ChunkData) {
     const chunkKey = getChunkKey({ x: chunkData.x, y: chunkData.y, z: chunkData.z });
-    console.log('adding ', chunkKey)
+    // console.log('adding ', chunkKey)
 
     const chunk = new Chunk(this.scene, chunkData);
     this.chunks.set(chunkKey, chunk);
@@ -130,9 +132,6 @@ export class ChunkCoordinator {
     mat.opacity = 0.5;
     mat.transparent = true;
     mat.needsUpdate = true;
-
-    const visualizer = new MeshBVHHelper(this.castableCollider, 10);
-    this.scene.add(visualizer)
   }
 
   dispose() {

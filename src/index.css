@@ -67,6 +67,10 @@ button:focus-visible {
   }
 }
 
+#stats {
+  top: 200px !important;
+}
+
 #stats canvas {
   display: block !important;
 }

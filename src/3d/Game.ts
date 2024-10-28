@@ -9,6 +9,7 @@ import {
 } from 'three-mesh-bvh';
 import { BatchedMesh } from 'three/src/Three.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
+import { Lights } from './Lights';
 
 export class Game {
 
@@ -20,6 +21,7 @@ export class Game {
   private renderer: WebGLRenderer;
   private camera: PerspectiveCamera;
 
+  private lights: Lights;
   private player: Player;
   private chunkCoordinator: ChunkCoordinator;
   private builder: Builder;
@@ -75,6 +77,7 @@ export class Game {
     BatchedMesh.prototype.raycast = acceleratedRaycast;
     ///
 
+    this.lights = new Lights(this.scene);
     this.chunkCoordinator = new ChunkCoordinator(this.scene);
     this.player = new Player(this.canvas, this.scene, this.camera, this.chunkCoordinator);
     this.builder = new Builder(this.scene);
@@ -82,13 +85,6 @@ export class Game {
     this.stats = new Stats();
     document.body.appendChild( this.stats.dom );
     this.stats.dom.id = 'stats';
-
-    // Add lights to the scene
-    const ambientLight = new AmbientLight(0xffffff, 0.5);
-    this.scene.add(ambientLight);
-    const directionalLight = new DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 10, 7.5);
-    this.scene.add(directionalLight);
 
     // Add a simple object (e.g., cube) to the scene
     this.geometry = new BoxGeometry(1, 1, 1);
