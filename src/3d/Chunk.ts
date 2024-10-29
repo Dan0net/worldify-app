@@ -12,8 +12,8 @@ import { TERRAIN_SCALE, TERRAIN_SIZE } from "../utils/constants";
 export class Chunk {
   public mesh: Mesh;
 
-  constructor(private scene: Scene, private chunkData: ChunkData) {
-    this.mesh = new ChunkMesh(chunkData);
+  constructor(private chunkData: ChunkData) {
+    this.mesh = new ChunkMesh(this.chunkData);
 
     this.mesh.scale.set(TERRAIN_SCALE, TERRAIN_SCALE, TERRAIN_SCALE);
 

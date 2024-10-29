@@ -1,26 +1,44 @@
-import { AmbientLight, BoxGeometry, BufferGeometry, Clock, DirectionalLight, FogExp2, Mesh, MeshStandardMaterial, NoToneMapping, PCFSoftShadowMap, PerspectiveCamera, Raycaster, Scene, WebGLRenderer } from 'three';
-import { Player } from './Player';
-import { ChunkCoordinator } from './ChunkCoordinator';
-import { Builder } from '../builder/Builder';
+import {
+  AmbientLight,
+  BoxGeometry,
+  BufferGeometry,
+  Clock,
+  DirectionalLight,
+  FogExp2,
+  Mesh,
+  MeshStandardMaterial,
+  NoToneMapping,
+  PCFSoftShadowMap,
+  PerspectiveCamera,
+  Raycaster,
+  Scene,
+  WebGLRenderer,
+} from "three";
+import { Player } from "./Player";
+import { ChunkCoordinator } from "./ChunkCoordinator";
+import { Builder } from "../builder/Builder";
 
 import {
-  computeBoundsTree, disposeBoundsTree,
-  computeBatchedBoundsTree, disposeBatchedBoundsTree, acceleratedRaycast,
-} from 'three-mesh-bvh';
-import { BatchedMesh } from 'three/src/Three.js';
-import Stats from 'three/examples/jsm/libs/stats.module.js';
-import { Lights } from './Lights';
+  computeBoundsTree,
+  disposeBoundsTree,
+  computeBatchedBoundsTree,
+  disposeBatchedBoundsTree,
+  acceleratedRaycast,
+} from "three-mesh-bvh";
+import { BatchedMesh } from "three/src/Three.js";
+import Stats from "three/examples/jsm/libs/stats.module.js";
+import { Lights } from "./Lights";
+import { InputController } from "../input/InputController";
 
 export class Game {
-
   private canvas: HTMLCanvasElement;
 
   private clock: Clock;
   private scene: Scene;
-  private raycaster: Raycaster;
   private renderer: WebGLRenderer;
   private camera: PerspectiveCamera;
 
+  private inputController: InputController;
   private lights: Lights;
   private player: Player;
   private chunkCoordinator: ChunkCoordinator;
@@ -33,17 +51,15 @@ export class Game {
   private geometry: BoxGeometry;
 
   constructor() {
-
     // Get the canvas element by its ID
-    this.canvas = document.getElementById('canvas') as HTMLCanvasElement;
+    this.canvas = document.getElementById("canvas") as HTMLCanvasElement;
     if (!this.canvas) {
-      console.error('Canvas element not found');
+      console.error("Canvas element not found");
       // return;
     }
 
     this.clock = new Clock(true);
     this.scene = new Scene();
-    this.raycaster = new Raycaster();
     this.renderer = new WebGLRenderer({
       canvas: this.canvas,
       antialias: true,
@@ -66,25 +82,42 @@ export class Game {
     );
 
     //BVH
-    
+
     // Add the extension functions
     BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
     BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
     Mesh.prototype.raycast = acceleratedRaycast;
-    
+
     BatchedMesh.prototype.computeBoundsTree = computeBatchedBoundsTree;
     BatchedMesh.prototype.disposeBoundsTree = disposeBatchedBoundsTree;
     BatchedMesh.prototype.raycast = acceleratedRaycast;
     ///
 
+    this.inputController = new InputController(this.canvas);
+
     this.lights = new Lights(this.scene);
-    this.chunkCoordinator = new ChunkCoordinator(this.scene);
-    this.player = new Player(this.canvas, this.scene, this.camera, this.chunkCoordinator);
-    this.builder = new Builder(this.scene);
+    this.scene.add(this.lights);
+
+    this.chunkCoordinator = new ChunkCoordinator();
+    this.scene.add(this.chunkCoordinator);
+
+    this.player = new Player(
+      this.inputController,
+      this.camera,
+      this.chunkCoordinator
+    );
+    this.scene.add(this.player);
+
+    this.builder = new Builder(
+      this.inputController,
+      this.camera,
+      this.chunkCoordinator
+    );
+    this.scene.add(this.builder);
 
     this.stats = new Stats();
-    document.body.appendChild( this.stats.dom );
-    this.stats.dom.id = 'stats';
+    document.body.appendChild(this.stats.dom);
+    this.stats.dom.id = "stats";
 
     // Add a simple object (e.g., cube) to the scene
     this.geometry = new BoxGeometry(1, 1, 1);
@@ -92,7 +125,7 @@ export class Game {
     this.cube = new Mesh(this.geometry, this.material);
     this.scene.add(this.cube);
 
-    window.addEventListener('resize', this.onWindowResize);
+    window.addEventListener("resize", this.onWindowResize);
 
     this.animate();
   }
@@ -106,9 +139,10 @@ export class Game {
     this.cube.rotation.x += 0.01;
     this.cube.rotation.y += 0.01;
 
+    this.inputController.update(delta);
     this.player.update(delta);
     // chunkCoordinator.updateChunksAroundPlayer(camera.position);
-    // builder.update(delta);
+    this.builder.update(delta);
 
     // Render the scene
     this.renderer.render(this.scene, this.camera);
@@ -119,16 +153,16 @@ export class Game {
   }
 
   // Handle window resize
-  onWindowResize() {
+  onWindowResize = () => {
     // canvas.setSize( window.innerWidth, window.innerHeight );
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
-  }
+  };
 
   // Clean up on component unmount
   dispose() {
-    window.removeEventListener('resize', this.onWindowResize);
+    window.removeEventListener("resize", this.onWindowResize);
 
     // Dispose of geometries and materials to free up resources
     this.geometry.dispose();
@@ -136,6 +170,5 @@ export class Game {
 
     // Dispose renderer and its resources
     this.renderer.dispose();
-  };
-
-};
+  }
+}

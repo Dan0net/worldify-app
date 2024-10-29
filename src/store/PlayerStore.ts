@@ -7,9 +7,9 @@ import { ChunkCoord } from '../utils/interfaces';
 
 type PlayerStore = {
   chunkCoord: ChunkCoord;
-  buildPreset: string;
+  buildPreset: number;
   setPlayerChunkCoord: (chunkCoord: ChunkCoord) => void;
-  setBuildPreset: (preset: string) => void;
+  setBuildPreset: (buildPreset: number) => void;
 };
 
 export const usePlayerStore = create<PlayerStore>()(
@@ -17,9 +17,9 @@ export const usePlayerStore = create<PlayerStore>()(
     // persist(
     (set) => ({
       chunkCoord: {x: 0, y: 0, z: 0},
-      buildPreset: 'cube',
+      buildPreset: 0,
       setPlayerChunkCoord: (chunkCoord) => set({ chunkCoord }),
-      setBuildPreset: (preset) => set({ buildPreset: preset }),
+      setBuildPreset: (buildPreset) => set({ buildPreset }),
     }),
     // {
     //   name: 'player-store',

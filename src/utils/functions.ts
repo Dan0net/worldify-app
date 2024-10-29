@@ -49,3 +49,15 @@ export function base64ToUint8Array(base64String: string): Uint8Array {
   }
   return uint8Array;
 }
+
+  // Utility throttle function
+ export function throttle(fn, limit) {
+    let lastCall = 0;
+    return function (...args) {
+      const now = Date.now();
+      if (now - lastCall >= limit) {
+        lastCall = now;
+        fn.apply(this, args);
+      }
+    };
+  }

@@ -34,7 +34,7 @@ export class ChunkMesh extends Mesh {
     const data = generateMeshWorker(
       gridFloat32,
       { x: 32, y: 32, z: 32 },
-      new Float32Array(gridFloat32).fill(0),
+      new Float32Array(gridFloat32).fill(1),
       new Float32Array(),
       new Float32Array(gridFloat32).fill(0)
     );

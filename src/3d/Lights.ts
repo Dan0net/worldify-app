@@ -1,16 +1,18 @@
-import { AmbientLight, CameraHelper, DirectionalLight, EquirectangularReflectionMapping, HemisphereLight, Scene, SRGBColorSpace, TextureLoader, Vector3 } from "three";
+import { AmbientLight, CameraHelper, DirectionalLight, EquirectangularReflectionMapping, HemisphereLight, Object3D, Scene, SRGBColorSpace, TextureLoader, Vector3 } from "three";
 
-export class Lights {
+export class Lights extends Object3D {
     private shadowLightOffset = new Vector3(-75, 100, 75);
     private shadowLight: DirectionalLight;
 
     constructor(private scene: Scene) {
+        super();
+        
         //lights
         const skyColor = 0xB1E1FF;  // light blue
         const groundColor = 0xB97A20;  // brownish orange
         const Hintensity = 0.0;
         const Hlight = new HemisphereLight(skyColor, groundColor, Hintensity);
-        scene.add(Hlight);
+        this.add(Hlight);
 
         const Dcolor = 0xFFFFFF;
         const Dintensity = 2.0;
@@ -29,11 +31,11 @@ export class Lights {
         // TODO fix bias with normal maps
         this.shadowLight.shadow.bias = 0.001;
         this.shadowLight.shadow.normalBias = 0.5;
-        scene.add(this.shadowLight);
+        this.add(this.shadowLight);
         // app.scene.add(this.shadowLight.target);
 
         const cameraHelper = new CameraHelper(this.shadowLight.shadow.camera);
-        scene.add(cameraHelper);
+        this.add(cameraHelper);
 
         const loader = new TextureLoader();
 		const skyBoxTexture = loader.load(

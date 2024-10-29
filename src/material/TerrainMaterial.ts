@@ -218,8 +218,8 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
               vec3 q0 = dFdx( - vViewPosition.xyz );
               vec3 q1 = dFdy( - vViewPosition.xyz );
-              vec2 st0 = dFdx( vPos.xz );
-              vec2 st1 = dFdy( vPos.xz );
+              vec2 st0 = dFdx( vec2(0,0) );
+              vec2 st1 = dFdy( vec2(0,0) );
 
               vec3 N = normalize( vNormal ); // normalized
 
@@ -237,6 +237,8 @@ export class TerrainMaterial extends MeshStandardMaterial {
               mat3 tbn = mat3( T * scale, B * scale, N );
 
               normal = normalize( tbn * texelNormal );
+              // normal = normalize( tbn * vec3(1,1,1) );
+              // diffuseColor = vec4(normal, 1.0);
               // normal = normalize( vNormal );
       #endif
           `

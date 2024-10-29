@@ -1,6 +1,6 @@
 // 3d/ChunkCoordinator.ts
 import { Chunk } from './Chunk';
-import { Group, Mesh, MeshStandardMaterial, Scene, Vector3 } from 'three';
+import { Group, Mesh, MeshStandardMaterial, Object3D, Scene, Vector3 } from 'three';
 import { useSettingStore } from '../store/SettingStore';
 import { useChunkStore } from '../store/ChunkStore';
 import { usePlayerStore } from '../store/PlayerStore';
@@ -10,7 +10,7 @@ import { getChunkKey } from '../utils/functions';
 import { MeshBVH, MeshBVHHelper, StaticGeometryGenerator } from 'three-mesh-bvh';
 import { useGameStore } from '../store/GameStore';
 
-export class ChunkCoordinator {
+export class ChunkCoordinator extends Object3D {
   private pendingRequests = new Map<string, Promise<ChunkData>>();
   private api = new API();
   private chunks = new Map<string, Chunk>();
@@ -19,7 +19,9 @@ export class ChunkCoordinator {
 
   private unsubPlayerStore: () => void;
 
-  constructor(private scene: Scene) {
+  constructor() {
+    super();
+
     this.unsubPlayerStore = usePlayerStore.subscribe(
       (state) => state.chunkCoord,
       (chunkCoord, previousChunkCoord) => {
@@ -35,9 +37,9 @@ export class ChunkCoordinator {
     this.createFirstChunk(chunkCoord)
     this.createChunksInRange(chunkCoord);
 
-    this.scene.add(this.castableChunkMeshs);
+    this.add(this.castableChunkMeshs);
     const visualizer = new MeshBVHHelper(this.castableCollider, 10);
-    this.scene.add(visualizer)
+    this.add(visualizer)
   }
 
   private async getOrLoadChunk(chunkCoord: ChunkCoord): Promise<ChunkData | void> {
@@ -109,7 +111,7 @@ export class ChunkCoordinator {
     const chunkKey = getChunkKey({ x: chunkData.x, y: chunkData.y, z: chunkData.z });
     // console.log('adding ', chunkKey)
 
-    const chunk = new Chunk(this.scene, chunkData);
+    const chunk = new Chunk(chunkData);
     this.chunks.set(chunkKey, chunk);
 
     this.castableChunkMeshs.attach(chunk.mesh);

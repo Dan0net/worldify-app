@@ -9,7 +9,6 @@ export const HomeUI: React.FC = () => {
   const {hasStarted, setHasStarted} = useGameStore();
 
   const handleStart = () => {
-    console.log(hasStarted)
     setHasStarted(true);
   };
 
