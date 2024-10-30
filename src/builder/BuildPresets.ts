@@ -12,9 +12,9 @@ export interface BuildPreset {
   snapShape: string;
   constructive: boolean;
   size: Vector3;
-  material?: string;
+  material: string;
   align: string;
-  rotation?: Euler;
+  rotation: Euler;
 }
 
 export const BuildPresets: BuildPreset[] = [
@@ -26,6 +26,7 @@ export const BuildPresets: BuildPreset[] = [
     size: new Vector3(4, 4, 0.5),
     material: 'brick',
     align: "base",
+    rotation: new Euler(0,0,0, 'XYZ'),
   },
   {
     name: "blob carve",
@@ -33,7 +34,9 @@ export const BuildPresets: BuildPreset[] = [
     snapShape: 'point',
     constructive: false,
     size: new Vector3(3, 0, 0),
+    material: 'grass',
     align: "center",
+    rotation: new Euler(0,0,0, 'XYZ'),
   },
   {
     name: "blob",
@@ -43,5 +46,16 @@ export const BuildPresets: BuildPreset[] = [
     size: new Vector3(3, 0, 0),
     material: 'grass',
     align: "center",
+    rotation: new Euler(0,0,0, 'XYZ'),
+  },
+  {
+    name: "wall",
+    shape: "cube",
+    snapShape: 'plane',
+    constructive: true,
+    size: new Vector3(4, 4, 0.5),
+    material: 'brick',
+    align: "base",
+    rotation: new Euler(Math.PI / 3,0,0, 'XYZ'),
   },
 ];

@@ -1,5 +1,4 @@
 // builder/Builder.ts
-import { acceleratedRaycast } from "three-mesh-bvh";
 import { ChunkCoordinator } from "../3d/ChunkCoordinator";
 import { InputController } from "../input/InputController";
 import { usePlayerStore } from "../store/PlayerStore";
@@ -7,6 +6,7 @@ import BuildMarker from "./BuildMarker";
 import { BuildPresets } from "./BuildPresets";
 import {
   BoxGeometry,
+  Euler,
   Intersection,
   LineBasicMaterial,
   Object3D,
@@ -18,8 +18,11 @@ import {
   Vector3,
   WireframeGeometry,
 } from "three";
-import { BUILD_DISTANCE_MAX } from "../utils/constants";
+import { BUILD_DISTANCE_MAX, BUILD_ROTATION_STEP } from "../utils/constants";
 import { BuildWireframe } from "./BuildWireframe";
+import { Box3, Quaternion } from "three";
+import { getExtents } from "../utils/functions";
+import BuildSnapMarker from "./BuildSnapMarker";
 
 export class Builder extends Object3D {
   private buildMarker = new BuildMarker();
@@ -29,6 +32,7 @@ export class Builder extends Object3D {
       color: 0xff0000,
     })
   );
+  private buildSnapMarker: BuildSnapMarker = new BuildSnapMarker();
   private buildPresetConfig =
     BuildPresets[usePlayerStore.getState().buildPreset];
 
@@ -37,6 +41,16 @@ export class Builder extends Object3D {
   private intersect: Intersection | null = null;
   private _cameraDir = new Vector3();
   private _cameraPos = new Vector3();
+  private _up = new Vector3(0, 1, 0);
+  private _left = new Vector3(1, 0, 0);
+  private _forward = new Vector3(0, 0, 1);
+  private _rotationY = 0;
+  private _bbox = new Box3();
+  private _yAxisQuaternion = new Quaternion();
+  private _xAxisQuaternion = new Quaternion();
+  private _xyAxisQuaternion = new Quaternion();
+
+  private buildSnapPoints: Vector3[] = [];
 
   constructor(
     private inputController: InputController,
@@ -49,37 +63,71 @@ export class Builder extends Object3D {
 
     this.add(this.buildMarker);
     this.add(this.buildWireframe);
+    this.add(this.buildSnapMarker);
 
     // this.inputController.on('mousemove', this.mouseMove);
-    this.inputController.on("keypress", this.keyPress);
+    this.inputController.on("input", this.handleInput);
   }
 
   mouseMove = (delta: number) => {};
 
-  keyPress = (event) => {
-    if (event.key_func_name === "next_item") {
-      this.updateBuildPreset(1);
-    } else if (event.key_func_name === "prev_item") {
-      this.updateBuildPreset(-1);
+  handleInput = (event) => {
+    switch (event.key_func_name) {
+      case "next_item":
+        this.updateBuildPreset(1);
+        break;
+      case "prev_item":
+        this.updateBuildPreset(-1);
+        break;
+      case "next_rotate":
+        this.rotateBuildConfig(1);
+        break;
+      case "prev_rotate":
+        this.rotateBuildConfig(-1);
+        break;
     }
   };
 
   updateBuildPreset(inc: number) {
     const buildPreset =
-      (usePlayerStore.getState().buildPreset + inc + BuildPresets.length) % BuildPresets.length;
+      (usePlayerStore.getState().buildPreset + inc + BuildPresets.length) %
+      BuildPresets.length;
     // console.log(buildPresete)
     usePlayerStore.setState({ buildPreset });
 
     this.buildPresetConfig = BuildPresets[buildPreset];
 
     this.buildWireframe.setShape(
-      this.buildPresetConfig.shape,
+      this.buildPresetConfig.snapShape,
       this.buildPresetConfig.size,
       this.buildPresetConfig.constructive
     );
+
+    this.buildSnapMarker.setBuildPresetConfig(this.buildPresetConfig);
+  }
+
+  rotateBuildConfig(inc: number) {
+    this._rotationY =
+      (this._rotationY +
+        (inc > 0 ? BUILD_ROTATION_STEP : -BUILD_ROTATION_STEP)) %
+      (Math.PI * 2);
   }
 
   update(delta: number) {
+    const { center, normal } = this.raycast();
+
+    this.buildMarker.position.copy(center);
+    this.buildMarker.lookAt(center.clone().add(normal));
+
+    const rotation = this.projectBuildShape(center, normal);
+
+    this.snapBuildShape(center, rotation);
+
+    this.buildWireframe.position.copy(center);
+    this.buildSnapMarker.position.copy(center);
+  }
+
+  raycast(): { center: Vector3; normal: Vector3 } {
     this.raycaster.setFromCamera(this._vector2, this.camera); // Example direction
     const intersect = this.raycaster.intersectObject(
       this.chunkCoordinator.castableCollider,
@@ -103,10 +151,124 @@ export class Builder extends Object3D {
       this._cameraDir.multiplyScalar(BUILD_DISTANCE_MAX);
       center = this._cameraPos.add(this._cameraDir);
     }
+    return { center, normal };
+  }
 
-    this.buildMarker.position.copy(center);
-    this.buildMarker.lookAt(center.clone().add(normal));
+  projectBuildShape(center: Vector3, normal: Vector3): Quaternion {
+    // if (   !this.buildCenterPrevious
+    // 	|| this.buildPresetConfig.needsUpdating
+    // 	|| !center.equals(this.buildCenterPrevious)
+    // 	|| isPlacing){
+    // this.buildWireframe.scale.set(1, 1, 1);
 
+    // apply build rotation
+    // Step 1: Create a quaternion for the Y-axis rotation (world space)
+    this._yAxisQuaternion.setFromAxisAngle(this._up, this._rotationY + Math.PI);
+
+    // Step 2: Create a quaternion for the X-axis rotation (local space)
+    this._xAxisQuaternion.setFromAxisAngle(
+      this._left,
+      this.buildPresetConfig.rotation.x
+    );
+
+    // Step 3: Combine the quaternions (apply world Y-axis first, then local X-axis)
+    this._xyAxisQuaternion.multiplyQuaternions(
+      this._yAxisQuaternion,
+      this._xAxisQuaternion
+    );
+
+    // bbox for build preset rotation only
+    this.buildWireframe.quaternion.copy(this._xAxisQuaternion);
+    const baseExtents = getExtents(this.buildWireframe, this._bbox);
+
+    // bbox for full build rotation (preset + user rotation)
+    this.buildWireframe.quaternion.copy(this._xyAxisQuaternion);
+    const voxelExtents = getExtents(this.buildWireframe, this._bbox);
+
+    // if we touch terrain and need to fancy project the build obj
+    if (this.intersect && this.buildPresetConfig.align === "base") {
+      // inverse rotate build mesh by build rotation and intersect normal
+      const inverseNormal = new Vector3(-normal.x, 0, -normal.z).normalize();
+
+      const inverseNormalQuaternion = new Quaternion().setFromUnitVectors(
+        this._forward,
+        inverseNormal
+      );
+      const tempQuaternion = new Quaternion().multiplyQuaternions(
+        new Quaternion().multiplyQuaternions(
+          this._yAxisQuaternion.clone().invert(), // inverse use input rotation
+          this._xAxisQuaternion // keep original build preset rotation
+        ),
+        inverseNormalQuaternion // inverse intersect normal rotation
+      );
+
+      // bbox for build intersecting with collision face
+      this.buildWireframe.quaternion.copy(tempQuaternion);
+      const offsetExtents = getExtents(this.buildWireframe, this._bbox);
+
+      if (normal.y < 0.25) {
+        // if it's not a horizontal ground surface, offset back away from surface
+        const offset = new Vector3(0, 0, offsetExtents.z / 2);
+
+        const normalA = new Vector3(normal.x, 0, normal.z).normalize();
+
+        const offsetQuarternion = new Quaternion().setFromUnitVectors(
+          this._forward,
+          normalA
+        );
+        offset.applyQuaternion(offsetQuarternion);
+
+        // add to center
+        center.add(offset);
+      } else {
+        // if it's a flat surface project away from player
+        const offset = new Vector3(0, 0, baseExtents.z / 2);
+        offset.applyQuaternion(this._yAxisQuaternion);
+        center.add(offset);
+      }
+
+      //make build wireframe reflect build rotation
+      // this.buildWireframe.quaternion.copy(this._xyAxisQuaternion);
+    }
+
+    // finally, move up to base level
+    if (this.buildPresetConfig.align === "base") {
+      center.add(new Vector3(0, voxelExtents.y / 2, 0));
+    }
+
+    // move build wireframe to actuall build spot
+    // this.buildWireframe.scale.copy( new Vector3(1,1,1).multiplyScalar(this.buildPresetConfig.constructive ? 1.2 : 1.0) )
     this.buildWireframe.position.copy(center);
+    this.buildWireframe.quaternion.copy(this._xyAxisQuaternion);
+
+    // this.buildSnapMarker.quaternion.copy(baseQuaternion);
+    // this.buildSnapMarker.position.copy( center )
+
+    return this._xyAxisQuaternion;
+  }
+
+  snapBuildShape(center: Vector3, rotation: Quaternion) {
+    this.buildSnapMarker.quaternion.copy(rotation);
+    this.buildSnapMarker.position.copy(center);
+
+    const snapPoints = this.buildSnapMarker.getMarkerWorldPositions();
+    let minSnapDistance = 0.75;
+    let snapDelta;
+    // TODO use partitioning or mathjs matrix ops
+    for (const snapPoint of snapPoints) {
+      for (const buildSnapPoint of this.buildSnapPoints) {
+        const d = snapPoint.distanceTo(buildSnapPoint);
+        // console.log(snapPoint, buildSnapPoint)
+        // console.log(d)
+        if (d < minSnapDistance) {
+          minSnapDistance = d;
+          snapDelta = snapPoint.sub(buildSnapPoint);
+        }
+      }
+    }
+
+    if (snapDelta) {
+      center.sub(snapDelta);
+    }
   }
 }

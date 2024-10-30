@@ -16,8 +16,8 @@ export class InputController {
   private _hasStarted = useGameStore.getState().hasStarted;
 
   public keyDownFuncs = new Set();
-  private _keyDownMaps = useSettingStore.getState().keys_down;
-  private _keyPressMaps = useSettingStore.getState().keys_press;
+  private _keyHoldMaps = useSettingStore.getState().keys_hold;
+  private _keyImpulseMaps = useSettingStore.getState().keys_impulse;
 
   constructor(private canvas: HTMLCanvasElement) {
     this.unsubGameStore = useGameStore.subscribe(
@@ -56,18 +56,18 @@ export class InputController {
     document.addEventListener("pointerlockchange", this.onPointerLockChange);
     document.addEventListener("keydown", this.onKeyDown, false);
     document.addEventListener("keyup", this.onKeyUp, false);
-    document.addEventListener("keypress", this.onKeyPress, false);
     document.addEventListener("mousemove", this.onMouseMove, false);
     document.addEventListener("mousedown", this.onMouseDown, false);
+    document.addEventListener("wheel", this.onMouseWheel, false);
   }
 
   private disableControls() {
     document.removeEventListener("pointerlockchange", this.onPointerLockChange);
     document.removeEventListener("keydown", this.onKeyDown, false);
     document.removeEventListener("keyup", this.onKeyDown, false);
-    document.removeEventListener("keypress", this.onKeyPress, false);
     document.removeEventListener("mousemove", this.onMouseMove, false);
     document.removeEventListener("mousedown", this.onMouseDown, false);
+    document.removeEventListener("wheel", this.onMouseWheel, false);
   }
 
   // Simple event emitter methods
@@ -93,26 +93,29 @@ export class InputController {
   }
 
   private onKeyDown = (event: KeyboardEvent) => {
-    const key_func = Object.keys(this._keyDownMaps).find(
-      (key) => this._keyDownMaps[key] === event.code
+    const key_func = Object.keys(this._keyHoldMaps).find(
+      (key) => this._keyHoldMaps[key] === event.code
     );
-    if (key_func) this.keyDownFuncs.add(key_func);
-    if (!key_func) console.log(event.code);
+    if (key_func) {
+      this.keyDownFuncs.add(key_func);
+    } else {
+      const key_func_name = Object.keys(this._keyImpulseMaps).find(
+        (key) => this._keyImpulseMaps[key] === event.code
+      );
+      // console.log(key_func_name, event.code, this._keyPressMaps)
+      if (key_func_name) {
+        this.emit("input", { key_func_name, ...event });
+      } else {
+        console.log(event.code);
+      }
+    }
   };
 
   private onKeyUp = (event: KeyboardEvent) => {
-    const key_func = Object.keys(this._keyDownMaps).find(
-      (key) => this._keyDownMaps[key] === event.code
+    const key_func = Object.keys(this._keyHoldMaps).find(
+      (key) => this._keyHoldMaps[key] === event.code
     );
     if (key_func) this.keyDownFuncs.delete(key_func);
-  };
-
-  onKeyPress = (event: KeyboardEvent) => {
-    const key_func_name = Object.keys(this._keyPressMaps).find(
-      (key) => this._keyPressMaps[key] === event.code
-    );
-    // console.log(key_func_name, event.code, this._keyPressMaps)
-    if (key_func_name) this.emit("keypress", { key_func_name, ...event });
   };
 
   onMouseMove = (event: MouseEvent) => {
@@ -121,5 +124,14 @@ export class InputController {
 
   onMouseDown = (event: MouseEvent) => {
     this.emit("mousedown", event);
+  };
+
+  onMouseWheel = (event: WheelEvent) => {
+    const code = event.deltaY > 0 ? 'WheelUp' : 'WheelDown';
+    const key_func_name = Object.keys(this._keyImpulseMaps).find(
+      (key) => this._keyImpulseMaps[key] === code
+    );
+    // console.log(key_func_name, event.code, this._keyPressMaps)
+    if (key_func_name) this.emit("input", { key_func_name, ...event });
   };
 }

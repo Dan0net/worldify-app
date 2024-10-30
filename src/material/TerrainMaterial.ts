@@ -29,7 +29,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
       map: new Texture(),
       normalMap: new Texture(),
       normalMapType: ObjectSpaceNormalMap,
-      // color: new Color(1,0,0),
+      color: new Color(1,0,0),
       toneMapped: false,
       defines: {
         // 'USE_MAP': '',

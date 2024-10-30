@@ -207,7 +207,11 @@ export class Player extends Object3D {
 
           const depth = this.capsuleInfo.radius - distance;
           const direction = capsulePoint.sub(triPoint).normalize();
-          direction.y = 1.0;
+          if (direction.y > 0.5) {
+            direction.y = 1;
+            direction.x = 0;
+            direction.z = 0;
+          }
 
           this.tempSegment.start.addScaledVector(direction, depth);
           this.tempSegment.end.addScaledVector(direction, depth);

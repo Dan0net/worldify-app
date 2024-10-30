@@ -10,14 +10,14 @@ type SettingStore = {
   shadowsEnabled: boolean;
   setViewDistance: (distance: number) => void;
   setShadowsEnabled: (enabled: boolean) => void;
-  keys_down: {
+  keys_hold: {
     move_forward: string,
     move_backward: string,
     move_left: string,
     move_right: string,
     jump: string,
   },
-  keys_press: {
+  keys_impulse: {
     next_item: string,
     prev_item: string,
     next_material: string,
@@ -34,7 +34,7 @@ export const useSettingStore = create<SettingStore>()(
       shadowsEnabled: true,
       setViewDistance: (distance) => set({ viewDistance: Math.max(Math.min(distance, VIEW_DISTANCE_MAX), VIEW_DISTANCE_MIN) }),
       setShadowsEnabled: (enabled) => set({ shadowsEnabled: enabled }),
-      keys_down: {
+      keys_hold: {
         move_forward: 'KeyW',
         move_backward: 'KeyS',
         move_left: 'KeyA',
@@ -42,7 +42,9 @@ export const useSettingStore = create<SettingStore>()(
         jump: 'Space',
         run: 'ShiftLeft'
       },
-      keys_press: {
+      keys_impulse: {
+        next_rotate: 'WheelDown',
+        prev_rotate: 'WheelUp',
         next_item: 'KeyE',
         prev_item: 'KeyQ',
         next_material: 'KeyC',

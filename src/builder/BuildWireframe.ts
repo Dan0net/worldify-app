@@ -20,11 +20,21 @@ export class BuildWireframe extends LineSegments {
           new BoxGeometry(size.x, size.y, size.z)
         );
         break;
+      case "plane":
+        this.geometry = new WireframeGeometry(
+          new BoxGeometry(size.x, size.y, 0.01)
+        );
+        break;
       case "sphere":
         this.geometry = new WireframeGeometry(new SphereGeometry(size.x, 8, 8));
         break;
+      case "point":
+        this.geometry = new WireframeGeometry(new SphereGeometry(0.5, 8, 8));
+        break;
     }
 
-    (this.material as LineBasicMaterial).color.set(constructive ? 0x00FF00 : 0xFF0000);
+    (this.material as LineBasicMaterial).color.set(
+      constructive ? 0x00ff00 : 0xff0000
+    );
   }
 }
