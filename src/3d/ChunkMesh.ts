@@ -15,43 +15,41 @@ import {
 } from "../utils/functions";
 import { generateMeshWorker } from "../workers/MeshWorkerMultimat";
 import { TerrainMaterial } from "../material/TerrainMaterial";
-import { TERRAIN_SCALE } from "../utils/constants";
+import { TERRAIN_GRID_SIZE_MARGIN, TERRAIN_SCALE } from "../utils/constants";
 
 export class ChunkMesh extends Mesh {
-  constructor(chunkData: ChunkData) {
+  private meshData;
+
+  constructor() {
     super(new BufferGeometry(), TerrainMaterial.getInstance());
 
     this.castShadow = true;
     this.receiveShadow = true;
-
-    this.setChunkData(chunkData);
   }
 
-  async setChunkData(chunkData: ChunkData) {
-    const gridUint8 = base64ToUint8Array(chunkData.grid);
-    const gridFloat32 = decompressUint8ToFloat32(gridUint8);
-
-    const data = generateMeshWorker(
-      gridFloat32,
-      { x: 32, y: 32, z: 32 },
-      new Float32Array(gridFloat32).fill(1),
+  generateMeshData(grid: Float32Array) {
+    this.meshData = generateMeshWorker(
+      grid,
+      {
+        x: TERRAIN_GRID_SIZE_MARGIN,
+        y: TERRAIN_GRID_SIZE_MARGIN,
+        z: TERRAIN_GRID_SIZE_MARGIN,
+      },
+      new Float32Array(grid).fill(1),
       new Float32Array(),
-      new Float32Array(gridFloat32).fill(0)
+      new Float32Array(grid).fill(0)
     );
-    //   console.log(data)
+  }
 
-    const geoBuffer = this.generateMesh(data);
+  updateMesh() {
+    if (!this.meshData) return;
 
     this.geometry.dispose();
-    this.geometry = geoBuffer;
-  }
-
-  generateMesh(data: any): BufferGeometry {
     // console.log(data)
     // console.log('aaa')
 
     const { indices, vertices, adjusted, bary, light, lightIndices, normal } =
-      data;
+      this.meshData;
 
     // return new PlaneGeometry(32,32,32);
 
@@ -95,6 +93,6 @@ export class ChunkMesh extends Mesh {
 
     buffer.computeBoundsTree();
 
-    return buffer;
+    this.geometry = buffer;
   }
 }

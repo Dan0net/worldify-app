@@ -26,6 +26,8 @@ import {
   BUILD_ROTATION_STEP,
   BUILD_SNAP_MARKER_COUNT_MAX,
   BUILD_SNAP_MARKER_SIZE,
+  TERRAIN_SCALE,
+  TERRAIN_SIZE,
 } from "../utils/constants";
 import { BuildWireframe } from "./BuildWireframe";
 import { Box3, Quaternion } from "three";
@@ -65,12 +67,13 @@ export class Builder extends Object3D {
   private _forward = new Vector3(0, 0, 1);
   private _rotationY = 0;
   private _bbox = new Box3();
-  private _bboxVoxel = new Box3();
+  private _bboxCollider = new Box3();
+  private _bboxShape = new Box3();
   private _yAxisQuaternion = new Quaternion();
   private _xAxisQuaternion = new Quaternion();
   private _xyAxisQuaternion = new Quaternion();
 
-  private voxelBoxHelper = new Box3Helper(this._bboxVoxel, 0xffffff);
+  private voxelBoxHelper = new Box3Helper(this._bboxShape, 0xffffff);
   private unsubGameStore;
   private _menuStatus = useGameStore.getState().menuStatus;
 
@@ -199,9 +202,15 @@ export class Builder extends Object3D {
         this.remove(marker);
       }
     }
+
+    this.draw(true);
   }
 
   update(delta: number) {
+    if (this._menuStatus === MenuStatus.Playing) this.draw(false);
+  }
+
+  draw(isPlacing = false) {
     const { center, normal } = this.raycast();
 
     this.buildMarker.position.copy(center);
@@ -213,12 +222,28 @@ export class Builder extends Object3D {
 
     this.buildCollider.position.copy(center);
     this.buildSnapMarker.position.copy(center);
-    this.buildShape.position.copy(center);
-    this.buildShape.rotation.setFromQuaternion(rotation);
 
-    this._bboxVoxel.set(
-      this._bboxVoxel.min.floor().addScalar(-1),
-      this._bboxVoxel.max.ceil().addScalar(1)
+    this.buildShape.position.copy(center);
+    this.buildShape.quaternion.copy(rotation);
+    this.buildShape.updateMatrix();
+    getExtents(this.buildShape, this._bboxShape);
+
+    this._bboxShape.set(
+      this._bboxShape.min
+        .divideScalar(TERRAIN_SCALE)
+        .floor()
+        .multiplyScalar(TERRAIN_SCALE),
+      this._bboxShape.max
+        .divideScalar(TERRAIN_SCALE)
+        .ceil()
+        .multiplyScalar(TERRAIN_SCALE)
+    );
+
+    this.chunkCoordinator.drawToChunks(
+      center.clone(),
+      this._bboxShape.clone(),
+      this.buildPresetConfig,
+      isPlacing
     );
   }
 
@@ -278,7 +303,7 @@ export class Builder extends Object3D {
 
     // bbox for full build rotation (preset + user rotation)
     this.buildCollider.quaternion.copy(this._xyAxisQuaternion);
-    const voxelExtents = getExtents(this.buildCollider, this._bboxVoxel);
+    const colliderExtents = getExtents(this.buildCollider, this._bboxCollider);
 
     // if we touch terrain and need to fancy project the build obj
     if (this.intersect && this.buildPresetConfig.align === "base") {
@@ -328,7 +353,7 @@ export class Builder extends Object3D {
 
     // finally, move up to base level
     if (this.buildPresetConfig.align === "base") {
-      center.add(new Vector3(0, voxelExtents.y / 2, 0));
+      center.add(new Vector3(0, colliderExtents.y / 2, 0));
     }
 
     // move build wireframe to actuall build spot

@@ -1,8 +1,19 @@
 import { Box3, LineSegments, Mesh, Object3D, Vector3 } from "three";
 import { ChunkCoord } from "./interfaces";
+import { TERRAIN_GRID_SIZE_MARGIN, TERRAIN_SCALE } from "./constants";
 
 export function getChunkKey(chunkCoords: ChunkCoord): string {
   return `${chunkCoords.x}:${chunkCoords.y}:${chunkCoords.z}`;
+}
+
+export function worldToChunkPosition(point: Vector3, chunkPosition: Vector3) {
+  point.sub(chunkPosition).divideScalar(TERRAIN_SCALE);
+}
+
+export function pointIsInsideGrid(point: Vector3) {
+  return ( point.x >= 0 && point.x < TERRAIN_GRID_SIZE_MARGIN &&
+    point.y >= 0 && point.y < TERRAIN_GRID_SIZE_MARGIN &&
+    point.z >= 0 && point.z < TERRAIN_GRID_SIZE_MARGIN );
 }
 
 // todo refactor to utils and make more efficient
