@@ -1,5 +1,6 @@
 import {
   BoxGeometry,
+  Color,
   LineBasicMaterial,
   LineSegments,
   Mesh,
@@ -13,16 +14,21 @@ export class BuildWireframe extends LineSegments {
     super(geometry, material);
   }
 
-  public setShape(shape: string, size: Vector3, constructive: boolean) {
+  public setShape(shape: string, size: Vector3, color: Color) {
     switch (shape) {
       case "cube":
         this.geometry = new WireframeGeometry(
           new BoxGeometry(size.x, size.y, size.z)
         );
         break;
+      case "line":
+        this.geometry = new WireframeGeometry(
+          new BoxGeometry(0, size.y, 0)
+        );
+        break;
       case "plane":
         this.geometry = new WireframeGeometry(
-          new BoxGeometry(size.x, size.y, 0.01)
+          new BoxGeometry(size.x, size.y, 0)
         );
         break;
       case "sphere":
@@ -33,8 +39,6 @@ export class BuildWireframe extends LineSegments {
         break;
     }
 
-    (this.material as LineBasicMaterial).color.set(
-      constructive ? 0x00ff00 : 0xff0000
-    );
+    (this.material as LineBasicMaterial).color.set(color);
   }
 }

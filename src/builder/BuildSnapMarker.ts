@@ -23,7 +23,7 @@ export default class BuildSnapMarker extends Object3D {
     }
     this.markers = [];
 
-    const s = buildPresetConfig.size.multiplyScalar(0.5);
+    const s = buildPresetConfig.size.clone().multiplyScalar(0.5);
     let snaps;
 
     switch (buildPresetConfig.snapShape) {
@@ -50,6 +50,12 @@ export default class BuildSnapMarker extends Object3D {
       case "point":
         snaps = [[0, 0, 0]];
         break
+        case "line":
+            snaps = [
+                [0, s.y, 0],
+                [0, -s.y, 0]
+            ];
+            break
     }
 
     for (const snap of snaps) {

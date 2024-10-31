@@ -6,6 +6,7 @@ import BuildMarker from "./BuildMarker";
 import { BuildPresets } from "./BuildPresets";
 import {
   BoxGeometry,
+  Color,
   Euler,
   Intersection,
   LineBasicMaterial,
@@ -26,10 +27,16 @@ import BuildSnapMarker from "./BuildSnapMarker";
 
 export class Builder extends Object3D {
   private buildMarker = new BuildMarker();
-  private buildWireframe = new BuildWireframe(
+  private buildCollider = new BuildWireframe(
     new WireframeGeometry(new BoxGeometry(1, 1, 1)),
     new LineBasicMaterial({
       color: 0xff0000,
+    })
+  );
+  private buildShape = new BuildWireframe(
+    new WireframeGeometry(new BoxGeometry(1, 1, 1)),
+    new LineBasicMaterial({
+      color: 0xffff00,
     })
   );
   private buildSnapMarker: BuildSnapMarker = new BuildSnapMarker();
@@ -62,7 +69,8 @@ export class Builder extends Object3D {
     this.updateBuildPreset(0);
 
     this.add(this.buildMarker);
-    this.add(this.buildWireframe);
+    this.add(this.buildCollider);
+    this.add(this.buildShape);
     this.add(this.buildSnapMarker);
 
     // this.inputController.on('mousemove', this.mouseMove);
@@ -97,10 +105,18 @@ export class Builder extends Object3D {
 
     this.buildPresetConfig = BuildPresets[buildPreset];
 
-    this.buildWireframe.setShape(
+    this.buildCollider.setShape(
       this.buildPresetConfig.snapShape,
       this.buildPresetConfig.size,
       this.buildPresetConfig.constructive
+        ? new Color(0, 1, 0)
+        : new Color(1, 0, 0)
+    );
+
+    this.buildShape.setShape(
+      this.buildPresetConfig.shape,
+      this.buildPresetConfig.size,
+      new Color(1, 1, 0)
     );
 
     this.buildSnapMarker.setBuildPresetConfig(this.buildPresetConfig);
@@ -123,8 +139,10 @@ export class Builder extends Object3D {
 
     this.snapBuildShape(center, rotation);
 
-    this.buildWireframe.position.copy(center);
+    this.buildCollider.position.copy(center);
     this.buildSnapMarker.position.copy(center);
+    this.buildShape.position.copy(center);
+    this.buildShape.rotation.setFromQuaternion(rotation);
   }
 
   raycast(): { center: Vector3; normal: Vector3 } {
@@ -178,12 +196,12 @@ export class Builder extends Object3D {
     );
 
     // bbox for build preset rotation only
-    this.buildWireframe.quaternion.copy(this._xAxisQuaternion);
-    const baseExtents = getExtents(this.buildWireframe, this._bbox);
+    this.buildCollider.quaternion.copy(this._xAxisQuaternion);
+    const baseExtents = getExtents(this.buildCollider, this._bbox);
 
     // bbox for full build rotation (preset + user rotation)
-    this.buildWireframe.quaternion.copy(this._xyAxisQuaternion);
-    const voxelExtents = getExtents(this.buildWireframe, this._bbox);
+    this.buildCollider.quaternion.copy(this._xyAxisQuaternion);
+    const voxelExtents = getExtents(this.buildCollider, this._bbox);
 
     // if we touch terrain and need to fancy project the build obj
     if (this.intersect && this.buildPresetConfig.align === "base") {
@@ -203,8 +221,8 @@ export class Builder extends Object3D {
       );
 
       // bbox for build intersecting with collision face
-      this.buildWireframe.quaternion.copy(tempQuaternion);
-      const offsetExtents = getExtents(this.buildWireframe, this._bbox);
+      this.buildCollider.quaternion.copy(tempQuaternion);
+      const offsetExtents = getExtents(this.buildCollider, this._bbox);
 
       if (normal.y < 0.25) {
         // if it's not a horizontal ground surface, offset back away from surface
@@ -238,8 +256,8 @@ export class Builder extends Object3D {
 
     // move build wireframe to actuall build spot
     // this.buildWireframe.scale.copy( new Vector3(1,1,1).multiplyScalar(this.buildPresetConfig.constructive ? 1.2 : 1.0) )
-    this.buildWireframe.position.copy(center);
-    this.buildWireframe.quaternion.copy(this._xyAxisQuaternion);
+    this.buildCollider.position.copy(center);
+    this.buildCollider.quaternion.copy(this._xyAxisQuaternion);
 
     // this.buildSnapMarker.quaternion.copy(baseQuaternion);
     // this.buildSnapMarker.position.copy( center )
