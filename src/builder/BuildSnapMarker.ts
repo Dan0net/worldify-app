@@ -2,24 +2,27 @@ import {
   Mesh,
   MeshBasicMaterial,
   Object3D,
+  OctahedronGeometry,
   SphereGeometry,
   Vector3,
 } from "three";
 import { BuildPreset } from "./BuildPresets";
-import { BUILD_SNAP_SIZE } from "../utils/constants";
+import { BUILD_SNAP_MARKER_SIZE, BUILD_SNAP_SIZE } from "../utils/constants";
 
 export default class BuildSnapMarker extends Object3D {
   private markers: Mesh[] = [];
   private material = new MeshBasicMaterial({
-    color: 0xffff00,
-    wireframe: true,
+    color: 0x0000ff,
+    // wireframe: true,
+    opacity: 0.5,
+    transparent: true,
   });
-  private geometry = new SphereGeometry(BUILD_SNAP_SIZE, 4, 4);
+  private geometry = new OctahedronGeometry(BUILD_SNAP_MARKER_SIZE, 0);
   private _pos = new Vector3();
 
   setBuildPresetConfig(buildPresetConfig: BuildPreset) {
     for (const marker of this.markers) {
-        this.remove(marker);
+      this.remove(marker);
     }
     this.markers = [];
 
@@ -46,16 +49,16 @@ export default class BuildSnapMarker extends Object3D {
           [s.x, -s.y, 0],
           [-s.x, -s.y, 0],
         ];
-        break
+        break;
       case "point":
         snaps = [[0, 0, 0]];
-        break
-        case "line":
-            snaps = [
-                [0, s.y, 0],
-                [0, -s.y, 0]
-            ];
-            break
+        break;
+      case "line":
+        snaps = [
+          [0, s.y, 0],
+          [0, -s.y, 0],
+        ];
+        break;
     }
 
     for (const snap of snaps) {
@@ -83,13 +86,14 @@ export default class BuildSnapMarker extends Object3D {
     return points;
   }
 
-  generateSnapMarkers(points): Mesh[] {
-    const spheres: Mesh[] = [];
+  // generateSnapMarkers(points): Mesh[] {
+  //   const spheres: Mesh[] = [];
 
-    for (const p of points) {
-      const sphere = this.generateSnapMarker(p.x, p.y, p.z);
-    }
+  //   for (const p of points) {
+  //     const sphere = this.generateSnapMarker(p.x, p.y, p.z);
+  //     spheres.push(sphere);
+  //   }
 
-    return spheres;
-  }
+  //   return spheres;
+  // }
 }

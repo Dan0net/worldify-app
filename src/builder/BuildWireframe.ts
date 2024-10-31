@@ -1,6 +1,7 @@
 import {
   BoxGeometry,
   Color,
+  ColorRepresentation,
   LineBasicMaterial,
   LineSegments,
   Mesh,
@@ -14,7 +15,7 @@ export class BuildWireframe extends LineSegments {
     super(geometry, material);
   }
 
-  public setShape(shape: string, size: Vector3, color: Color) {
+  public setShape(shape: string, size: Vector3, color: ColorRepresentation) {
     switch (shape) {
       case "cube":
         this.geometry = new WireframeGeometry(

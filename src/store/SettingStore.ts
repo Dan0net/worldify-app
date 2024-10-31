@@ -16,12 +16,14 @@ type SettingStore = {
     move_left: string,
     move_right: string,
     jump: string,
+    run: string
   },
   keys_impulse: {
     next_item: string,
     prev_item: string,
     next_material: string,
-    prev_material: string
+    prev_material: string,
+    place: string
   }
 };
 
@@ -50,7 +52,9 @@ export const useSettingStore = create<SettingStore>()(
         next_material: 'KeyC',
         prev_material: 'KeyZ',
         snap_object: 'KeyT',
-        snap_grid: 'KeyR'
+        snap_grid: 'KeyR',
+        place: 'MouseLeft',
+        inventory: 'MouseRight'
       }
     }),
     {

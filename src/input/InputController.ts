@@ -30,6 +30,8 @@ export class InputController {
         this._hasStarted = hasStarted;
       }
     );
+
+    this.on('input', this.handleInput);
   }
 
   update(delta: number) {
@@ -123,15 +125,39 @@ export class InputController {
   };
 
   onMouseDown = (event: MouseEvent) => {
-    this.emit("mousedown", event);
+    let code;
+    switch (event.buttons) {
+      case 1:
+        code = "MouseLeft";
+        break;
+      case 2:
+        code = "MouseRight";
+        break;
+      case 4:
+        code = "MouseMiddle";
+        break;
+    }
+    if (code) {
+      const key_func_name = Object.keys(this._keyImpulseMaps).find(
+        (key) => this._keyImpulseMaps[key] === code
+      );
+      if (key_func_name) this.emit("input", { key_func_name, ...event });
+    }
   };
 
   onMouseWheel = (event: WheelEvent) => {
-    const code = event.deltaY > 0 ? 'WheelUp' : 'WheelDown';
+    const code = event.deltaY > 0 ? "WheelUp" : "WheelDown";
     const key_func_name = Object.keys(this._keyImpulseMaps).find(
       (key) => this._keyImpulseMaps[key] === code
     );
     // console.log(key_func_name, event.code, this._keyPressMaps)
     if (key_func_name) this.emit("input", { key_func_name, ...event });
   };
+
+  handleInput = (event) => {
+    if (event.key_func_name === 'inventory') {
+      useGameStore.getState().toggleInventory();
+      console.log(useGameStore.getState().isInventoryVisible)
+    }
+  }
 }

@@ -5,11 +5,13 @@ import { usePlayerStore } from "../store/PlayerStore";
 import BuildMarker from "./BuildMarker";
 import { BuildPresets } from "./BuildPresets";
 import {
+  Box3Helper,
   BoxGeometry,
   Color,
   Euler,
   Intersection,
   LineBasicMaterial,
+  Mesh,
   Object3D,
   PerspectiveCamera,
   Ray,
@@ -19,11 +21,17 @@ import {
   Vector3,
   WireframeGeometry,
 } from "three";
-import { BUILD_DISTANCE_MAX, BUILD_ROTATION_STEP } from "../utils/constants";
+import {
+  BUILD_DISTANCE_MAX,
+  BUILD_ROTATION_STEP,
+  BUILD_SNAP_MARKER_COUNT_MAX,
+  BUILD_SNAP_MARKER_SIZE,
+} from "../utils/constants";
 import { BuildWireframe } from "./BuildWireframe";
 import { Box3, Quaternion } from "three";
 import { getExtents } from "../utils/functions";
 import BuildSnapMarker from "./BuildSnapMarker";
+import { string } from "three/webgpu";
 
 export class Builder extends Object3D {
   private buildMarker = new BuildMarker();
@@ -40,6 +48,9 @@ export class Builder extends Object3D {
     })
   );
   private buildSnapMarker: BuildSnapMarker = new BuildSnapMarker();
+  private snapMarkers: Mesh[] = [];
+  private snapPointMap = new Map<string, Vector3>();
+
   private buildPresetConfig =
     BuildPresets[usePlayerStore.getState().buildPreset];
 
@@ -53,11 +64,12 @@ export class Builder extends Object3D {
   private _forward = new Vector3(0, 0, 1);
   private _rotationY = 0;
   private _bbox = new Box3();
+  private _bboxVoxel = new Box3();
   private _yAxisQuaternion = new Quaternion();
   private _xAxisQuaternion = new Quaternion();
   private _xyAxisQuaternion = new Quaternion();
 
-  private buildSnapPoints: Vector3[] = [];
+  private voxelBoxHelper = new Box3Helper(this._bboxVoxel, 0xffffff);
 
   constructor(
     private inputController: InputController,
@@ -72,6 +84,8 @@ export class Builder extends Object3D {
     this.add(this.buildCollider);
     this.add(this.buildShape);
     this.add(this.buildSnapMarker);
+
+    this.add(this.voxelBoxHelper);
 
     // this.inputController.on('mousemove', this.mouseMove);
     this.inputController.on("input", this.handleInput);
@@ -93,6 +107,9 @@ export class Builder extends Object3D {
       case "prev_rotate":
         this.rotateBuildConfig(-1);
         break;
+      case "place":
+        this.placeBuild();
+        break;
     }
   };
 
@@ -108,9 +125,7 @@ export class Builder extends Object3D {
     this.buildCollider.setShape(
       this.buildPresetConfig.snapShape,
       this.buildPresetConfig.size,
-      this.buildPresetConfig.constructive
-        ? new Color(0, 1, 0)
-        : new Color(1, 0, 0)
+      this.buildPresetConfig.constructive ? 0x00ff00 : 0xff0000
     );
 
     this.buildShape.setShape(
@@ -129,6 +144,34 @@ export class Builder extends Object3D {
       (Math.PI * 2);
   }
 
+  placeBuild() {
+    const _markersWorldPos = this.buildSnapMarker.getMarkerWorldPositions();
+    // const _markers = this.buildSnapMarker.generateSnapMarkers(
+    //   _markersWorldPos
+    // );
+
+    for (const p of _markersWorldPos) {
+      const key = `${p.x}:${p.y}:${p.z}`;
+
+      if (!this.snapPointMap.has(key)) {
+        this.snapPointMap.set(key, p);
+        const marker = this.buildSnapMarker.generateSnapMarker(p.x, p.y, p.z);
+        this.snapMarkers.push(marker);
+        this.add(marker);
+      }
+    }
+
+    while (this.snapMarkers.length > BUILD_SNAP_MARKER_COUNT_MAX) {
+      const marker = this.snapMarkers.shift();
+      if (marker) {
+        const p = marker.position;
+        const key = `${p.x}:${p.y}:${p.z}`;
+        this.snapPointMap.delete(key);
+        this.remove(marker);
+      }
+    }
+  }
+
   update(delta: number) {
     const { center, normal } = this.raycast();
 
@@ -143,6 +186,11 @@ export class Builder extends Object3D {
     this.buildSnapMarker.position.copy(center);
     this.buildShape.position.copy(center);
     this.buildShape.rotation.setFromQuaternion(rotation);
+
+    this._bboxVoxel.set(
+      this._bboxVoxel.min.floor().addScalar(-1),
+      this._bboxVoxel.max.ceil().addScalar(1)
+    );
   }
 
   raycast(): { center: Vector3; normal: Vector3 } {
@@ -201,7 +249,7 @@ export class Builder extends Object3D {
 
     // bbox for full build rotation (preset + user rotation)
     this.buildCollider.quaternion.copy(this._xyAxisQuaternion);
-    const voxelExtents = getExtents(this.buildCollider, this._bbox);
+    const voxelExtents = getExtents(this.buildCollider, this._bboxVoxel);
 
     // if we touch terrain and need to fancy project the build obj
     if (this.intersect && this.buildPresetConfig.align === "base") {
@@ -274,13 +322,13 @@ export class Builder extends Object3D {
     let snapDelta;
     // TODO use partitioning or mathjs matrix ops
     for (const snapPoint of snapPoints) {
-      for (const buildSnapPoint of this.buildSnapPoints) {
-        const d = snapPoint.distanceTo(buildSnapPoint);
+      for (const p of this.snapPointMap.values()) {
+        const d = snapPoint.distanceTo(p);
         // console.log(snapPoint, buildSnapPoint)
         // console.log(d)
         if (d < minSnapDistance) {
           minSnapDistance = d;
-          snapDelta = snapPoint.sub(buildSnapPoint);
+          snapDelta = snapPoint.sub(p);
         }
       }
     }

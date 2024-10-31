@@ -10,12 +10,12 @@ export class Lights extends Object3D {
         //lights
         const skyColor = 0xB1E1FF;  // light blue
         const groundColor = 0xB97A20;  // brownish orange
-        const Hintensity = 0.0;
+        const Hintensity = 1.0;
         const Hlight = new HemisphereLight(skyColor, groundColor, Hintensity);
         this.add(Hlight);
 
         const Dcolor = 0xFFFFFF;
-        const Dintensity = 2.0;
+        const Dintensity = 1.0;
         
         this.shadowLight = new DirectionalLight(Dcolor, Dintensity);
         this.shadowLight.position.copy(this.shadowLightOffset);

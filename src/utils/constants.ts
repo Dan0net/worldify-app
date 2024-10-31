@@ -23,3 +23,5 @@ export const VIEW_DISTANCE_MIN = 1;
 export const BUILD_DISTANCE_MAX = 15;
 export const BUILD_ROTATION_STEP = Math.PI / 8;
 export const BUILD_SNAP_SIZE = 0.5;
+export const BUILD_SNAP_MARKER_SIZE = 0.25;
+export const BUILD_SNAP_MARKER_COUNT_MAX = 50;
