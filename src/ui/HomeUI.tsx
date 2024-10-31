@@ -1,15 +1,16 @@
 // ui/HomeUI.tsx
-import React, { useState } from 'react';
-import { LoginUI } from './LoginUI';
-import { SettingUI } from './SettingsUI';
-import { useGameStore } from '../store/GameStore';
+import React, { useState } from "react";
+import { LoginUI } from "./LoginUI";
+import { SettingUI } from "./SettingsUI";
+import { MenuStatus, useGameStore } from "../store/GameStore";
 
 export const HomeUI: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
-  const {hasStarted, setHasStarted} = useGameStore();
+  const { menuStatus } = useGameStore();
 
-  const handleStart = () => {
-    setHasStarted(true);
+  const handleStart = (e) => {
+    e.stopPropagation()
+    useGameStore.setState({ menuStatus: MenuStatus.Playing });
   };
 
   const handleShowSettings = (isShowSettings: boolean): void => {
@@ -18,23 +19,46 @@ export const HomeUI: React.FC = () => {
   };
 
   return (
-    <div id="home-ui" hidden={hasStarted}>
-      <div id='blur'></div>
-      <div id='home-ui-container'>
-      <div className='button-container'>
-        {!showSettings ? 
-          <>
-            <button onClick={handleStart} className='button' id='continue-button'>Continue</button>
-            <button onClick={handleStart} className='button' id='start-button'>Start</button>
-            <button onClick={() => handleShowSettings(true)} className='button' id='settings-button'>Settings</button>
-            <LoginUI />
+    <div id="home-ui">
+      <div id="blur"></div>
+      <div id="home-ui-container">
+        <div className="button-container">
+          {!showSettings ? (
+            <>
+              <button
+                onClick={handleStart}
+                className="button"
+                id="continue-button"
+              >
+                Continue
+              </button>
+              <button
+                onClick={handleStart}
+                className="button"
+                id="start-button"
+              >
+                Start
+              </button>
+              <button
+                onClick={() => handleShowSettings(true)}
+                className="button"
+                id="settings-button"
+              >
+                Settings
+              </button>
+              <LoginUI />
             </>
-          :
-          <>
-            <SettingUI />
-            <button onClick={() => handleShowSettings(false)} className='back-button button'>Back</button>
-          </>
-        }
+          ) : (
+            <>
+              <SettingUI />
+              <button
+                onClick={() => handleShowSettings(false)}
+                className="back-button button"
+              >
+                Back
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

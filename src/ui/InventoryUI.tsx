@@ -1,18 +1,32 @@
 // ui/InventoryUI.tsx
-import React from 'react';
-import { usePlayerStore } from '../store/PlayerStore';
-import { useGameStore } from '../store/GameStore';
+import React from "react";
+import { usePlayerStore } from "../store/PlayerStore";
+import { MenuStatus, useGameStore } from "../store/GameStore";
 
 export const InventoryUI: React.FC = () => {
-  const { buildPreset, setBuildPreset } = usePlayerStore();
-  const { isInventoryVisible } = useGameStore();
+  const handleClickOutside = (e) => {
+    e.stopPropagation();
+    useGameStore.setState({ menuStatus: MenuStatus.Playing });
+    console.log('a')
+  }
+
+  const handleClickInside = (e) => {
+    e.stopPropagation();
+    console.log('b')
+  }
 
   return (
-    isInventoryVisible && <div id="inventory-ui">
-      {/* Inventory items */}
-      <button onClick={() => setBuildPreset('preset1')}>Preset 1</button>
-      <button onClick={() => setBuildPreset('preset2')}>Preset 2</button>
-      {/* Additional inventory controls */}
-    </div>
+    (
+      <div id="inventory-ui" onMouseDown={handleClickOutside}>
+        <div id="inventory-ui-container">
+          <div className="inventory-window" onMouseDown={handleClickInside}>
+            {/* Inventory items */}
+            <button>Preset 1</button>
+            <button>Preset 2</button>
+            {/* Additional inventory controls */}
+          </div>
+        </div>
+      </div>
+    )
   );
 };

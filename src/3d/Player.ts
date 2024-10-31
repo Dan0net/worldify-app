@@ -12,7 +12,7 @@ import {
   Scene,
   Vector3,
 } from "three";
-import { useGameStore } from "../store/GameStore";
+import { MenuStatus, useGameStore } from "../store/GameStore";
 import {
   _PI_2,
   PHYSICS_STEPS,
@@ -48,6 +48,10 @@ export class Player extends Object3D {
 
   private cameraEuler: Euler = new Euler(0, 0, 0, "YXZ");
 
+  private _menuStatus = useGameStore.getState().menuStatus;
+  private unsubGameStore;
+  private setPlayerChunkCoord = usePlayerStore.getState().setPlayerChunkCoord;
+
   constructor(
     private inputController: InputController,
     private camera: PerspectiveCamera,
@@ -55,7 +59,19 @@ export class Player extends Object3D {
   ) {
     super();
 
-    this.inputController.on('mousemove', this.mouseMoved);
+    this.unsubGameStore = useGameStore.subscribe(
+      (state) => state.menuStatus,
+      (menuStatus, previousMenuStatus) => {
+        if (menuStatus !== previousMenuStatus) {
+          // menuStatus === MenuStatus.Playing
+          //   ? this.enableControls()
+          //   : this.disableControls();
+        }
+        this._menuStatus = menuStatus;
+      }
+    );
+
+    this.inputController.on("mousemove", this.mouseMoved);
 
     this.playerMesh = new Mesh(
       new RoundedBoxGeometry(1.0, 2.0, 1.0, 10, 0.5),
@@ -70,11 +86,11 @@ export class Player extends Object3D {
     this.reset();
   }
 
-  dispose() {
-
-  }
+  dispose() {}
 
   mouseMoved = (event: MouseEvent) => {
+    if (this._menuStatus !== MenuStatus.Playing) return;
+
     const { mouseSensitivity } = useSettingStore.getState();
 
     this.cameraEuler.setFromQuaternion(this.camera.quaternion);
@@ -88,14 +104,19 @@ export class Player extends Object3D {
     );
 
     this.camera.quaternion.setFromEuler(this.cameraEuler);
-  }
+  };
 
   update(delta: number) {
     if (!useGameStore.getState().hasFirstChunkLoaded) return;
 
-    if (this.inputController.keyDownFuncs.has('jump') && this.playerIsOnGround) {
-      this.playerVelocity.y = 15.0;
-      this.playerIsOnGround = false;
+    if (this._menuStatus !== MenuStatus.Home) {
+      if (
+        this.inputController.keyDownFuncs.has("jump") &&
+        this.playerIsOnGround
+      ) {
+        this.playerVelocity.y = 15.0;
+        this.playerIsOnGround = false;
+      }
     }
 
     const deltaStep = Math.min(delta, 0.1) / PHYSICS_STEPS;
@@ -103,8 +124,7 @@ export class Player extends Object3D {
       this.collisionUpdate(deltaStep);
     }
 
-    const { setPlayerChunkCoord } = usePlayerStore.getState();
-    setPlayerChunkCoord({
+    this.setPlayerChunkCoord({
       x: Math.floor(this.position.x / TERRAIN_SIZE),
       y: Math.floor(this.position.y / TERRAIN_SIZE),
       z: Math.floor(this.position.z / TERRAIN_SIZE),
@@ -121,30 +141,34 @@ export class Player extends Object3D {
 
     this.position.addScaledVector(this.playerVelocity, delta);
 
-    // move the player
-    const angle = this.cameraEuler.y;
-    const moveSpeed = this.inputController.keyDownFuncs.has('run') ? PLAYER_RUN_SPEED : PLAYER_SPEED;
-    if (this.inputController.keyDownFuncs.has('move_forward')) {
-      this.tempVector.set(0, 0, -1).applyAxisAngle(UP_VECTOR3, angle);
-      this.position.addScaledVector(this.tempVector, moveSpeed * delta);
-    }
+    if (this._menuStatus !== MenuStatus.Home) {
+      // move the player
+      const angle = this.cameraEuler.y;
+      const moveSpeed = this.inputController.keyDownFuncs.has("run")
+        ? PLAYER_RUN_SPEED
+        : PLAYER_SPEED;
+      if (this.inputController.keyDownFuncs.has("move_forward")) {
+        this.tempVector.set(0, 0, -1).applyAxisAngle(UP_VECTOR3, angle);
+        this.position.addScaledVector(this.tempVector, moveSpeed * delta);
+      }
 
-    if (this.inputController.keyDownFuncs.has('move_backward')) {
-      this.tempVector.set(0, 0, 1).applyAxisAngle(UP_VECTOR3, angle);
-      this.position.addScaledVector(this.tempVector, moveSpeed * delta);
-    }
+      if (this.inputController.keyDownFuncs.has("move_backward")) {
+        this.tempVector.set(0, 0, 1).applyAxisAngle(UP_VECTOR3, angle);
+        this.position.addScaledVector(this.tempVector, moveSpeed * delta);
+      }
 
-    if (this.inputController.keyDownFuncs.has('move_left')) {
-      this.tempVector.set(-1, 0, 0).applyAxisAngle(UP_VECTOR3, angle);
-      this.position.addScaledVector(this.tempVector, moveSpeed * delta);
-    }
+      if (this.inputController.keyDownFuncs.has("move_left")) {
+        this.tempVector.set(-1, 0, 0).applyAxisAngle(UP_VECTOR3, angle);
+        this.position.addScaledVector(this.tempVector, moveSpeed * delta);
+      }
 
-    if (this.inputController.keyDownFuncs.has('move_right')) {
-      this.tempVector.set(1, 0, 0).applyAxisAngle(UP_VECTOR3, angle);
-      this.position.addScaledVector(this.tempVector, moveSpeed * delta);
-    }
+      if (this.inputController.keyDownFuncs.has("move_right")) {
+        this.tempVector.set(1, 0, 0).applyAxisAngle(UP_VECTOR3, angle);
+        this.position.addScaledVector(this.tempVector, moveSpeed * delta);
+      }
 
-    this.updateMatrixWorld();
+      this.updateMatrixWorld();
+    }
 
     // return
 

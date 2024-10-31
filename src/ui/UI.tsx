@@ -1,14 +1,24 @@
+import { useGameStore, MenuStatus } from "../store/GameStore";
 import { HomeUI } from "./HomeUI";
 import { HudUI } from "./HudUI";
+import { InventoryUI } from "./InventoryUI";
 
 function UI() {
-  return (
-    <div id='ui'>
-      <HomeUI />
-      <HudUI />
-      {/* The 3D canvas covers the entire webpage and is managed separately */}
-    </div>
-  );
+  const { menuStatus } = useGameStore();
+  const getDisplay = () => {
+    {
+      switch (menuStatus) {
+        case MenuStatus.Home:
+          return <HomeUI />;
+        case MenuStatus.Playing:
+          return <HudUI />;
+        case MenuStatus.Inventory:
+          return <InventoryUI />;
+      }
+    }
+  };
+
+  return <div id="ui">{getDisplay()}</div>;
 }
 
-export default UI
+export default UI;

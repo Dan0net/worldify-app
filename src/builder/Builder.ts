@@ -32,6 +32,7 @@ import { Box3, Quaternion } from "three";
 import { getExtents } from "../utils/functions";
 import BuildSnapMarker from "./BuildSnapMarker";
 import { string } from "three/webgpu";
+import { MenuStatus, useGameStore } from "../store/GameStore";
 
 export class Builder extends Object3D {
   private buildMarker = new BuildMarker();
@@ -70,6 +71,8 @@ export class Builder extends Object3D {
   private _xyAxisQuaternion = new Quaternion();
 
   private voxelBoxHelper = new Box3Helper(this._bboxVoxel, 0xffffff);
+  private unsubGameStore;
+  private _menuStatus = useGameStore.getState().menuStatus;
 
   constructor(
     private inputController: InputController,
@@ -78,8 +81,22 @@ export class Builder extends Object3D {
   ) {
     super();
 
+    this.unsubGameStore = useGameStore.subscribe(
+      (state) => state.menuStatus,
+      (menuStatus, previousMenuStatus) => {
+        if (menuStatus !== previousMenuStatus) {
+          menuStatus === MenuStatus.Playing ? this.enable() : this.disable();
+        }
+        this._menuStatus = menuStatus;
+      }
+    );
+
     this.updateBuildPreset(0);
 
+    // this.inputController.on('mousemove', this.mouseMove);
+  }
+
+  enable() {
     this.add(this.buildMarker);
     this.add(this.buildCollider);
     this.add(this.buildShape);
@@ -87,29 +104,41 @@ export class Builder extends Object3D {
 
     this.add(this.voxelBoxHelper);
 
-    // this.inputController.on('mousemove', this.mouseMove);
     this.inputController.on("input", this.handleInput);
+  }
+
+  disable() {
+    this.remove(this.buildMarker);
+    this.remove(this.buildCollider);
+    this.remove(this.buildShape);
+    this.remove(this.buildSnapMarker);
+
+    this.remove(this.voxelBoxHelper);
+
+    this.inputController.off("input", this.handleInput);
   }
 
   mouseMove = (delta: number) => {};
 
   handleInput = (event) => {
-    switch (event.key_func_name) {
-      case "next_item":
-        this.updateBuildPreset(1);
-        break;
-      case "prev_item":
-        this.updateBuildPreset(-1);
-        break;
-      case "next_rotate":
-        this.rotateBuildConfig(1);
-        break;
-      case "prev_rotate":
-        this.rotateBuildConfig(-1);
-        break;
-      case "place":
-        this.placeBuild();
-        break;
+    if (this._menuStatus === MenuStatus.Playing) {
+      switch (event.key_func_name) {
+        case "next_item":
+          this.updateBuildPreset(1);
+          break;
+        case "prev_item":
+          this.updateBuildPreset(-1);
+          break;
+        case "next_rotate":
+          this.rotateBuildConfig(1);
+          break;
+        case "prev_rotate":
+          this.rotateBuildConfig(-1);
+          break;
+        case "place":
+          this.placeBuild();
+          break;
+      }
     }
   };
 

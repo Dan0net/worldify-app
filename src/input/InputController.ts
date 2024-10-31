@@ -1,4 +1,4 @@
-import { useGameStore } from "../store/GameStore";
+import { MenuStatus, useGameStore } from "../store/GameStore";
 import { useSessionStore } from "../store/SessionStore";
 import { useSettingStore } from "../store/SettingStore";
 
@@ -13,7 +13,7 @@ export class InputController {
 
   private listeners = {};
 
-  private _hasStarted = useGameStore.getState().hasStarted;
+  private _menuStatus = useGameStore.getState().menuStatus;
 
   public keyDownFuncs = new Set();
   private _keyHoldMaps = useSettingStore.getState().keys_hold;
@@ -21,36 +21,61 @@ export class InputController {
 
   constructor(private canvas: HTMLCanvasElement) {
     this.unsubGameStore = useGameStore.subscribe(
-      (state) => state.hasStarted,
-      (hasStarted, previousHasStarted) => {
-        if (hasStarted && hasStarted !== previousHasStarted)
-          this.enableControls();
-        if (!hasStarted && hasStarted !== previousHasStarted)
-          this.disableControls();
-        this._hasStarted = hasStarted;
+      (state) => state.menuStatus,
+      (menuStatus, previousMenuStatus) => {
+        if (menuStatus !== previousMenuStatus) {
+          // menuStatus === MenuStatus.Playing
+          //   ? this.enableControls()
+          //   : this.disableControls();
+        }
+        this._menuStatus = menuStatus;
       }
     );
 
-    this.on('input', this.handleInput);
-  }
+    // this.unsubGameStore = useGameStore.subscribe(
+    //   (state) => state.hasStarted,
+    //   (isInventoryVisible, previousIsInventoryVisible) => {
+    //     this._isInventoryVisible = isInventoryVisible;
+    //   }
+    // );
 
-  update(delta: number) {
-    if (!document.pointerLockElement && this._hasStarted) {
-      this.canvas.requestPointerLock();
-    }
-  }
+    this.enableControls();
 
-  private onPointerLockChange = () => {
-    if (!document.pointerLockElement) {
-      useGameStore.setState({ hasStarted: false });
-      this.disableControls();
-    }
-  };
+    window.oncontextmenu = () => false;
+
+    this.on("input", this.handleInput);
+  }
 
   dispose() {
     this.unsubGameStore();
     this.disableControls();
   }
+
+  update(delta: number) {
+    if (
+      !document.pointerLockElement &&
+      this._menuStatus === MenuStatus.Playing
+    ) {
+      this.canvas.requestPointerLock();
+    } else if (
+      document.pointerLockElement &&
+      this._menuStatus !== MenuStatus.Playing
+    ) {
+      document.exitPointerLock();
+    }
+  }
+
+  private onPointerLockChange = (event) => {
+    // event.preventDefault();
+
+    if (!document.pointerLockElement && this._menuStatus === MenuStatus.Playing) {
+      useGameStore.setState({ menuStatus: MenuStatus.Inventory });
+      // this.disableControls();
+    } else {
+      // this.enableControls();
+      // useGameStore.setState({ isInventoryVisible: false });
+    }
+  };
 
   private enableControls() {
     this.canvas.requestPointerLock();
@@ -95,6 +120,8 @@ export class InputController {
   }
 
   private onKeyDown = (event: KeyboardEvent) => {
+    // event.preventDefault();
+
     const key_func = Object.keys(this._keyHoldMaps).find(
       (key) => this._keyHoldMaps[key] === event.code
     );
@@ -114,6 +141,8 @@ export class InputController {
   };
 
   private onKeyUp = (event: KeyboardEvent) => {
+    // event.preventDefault();
+
     const key_func = Object.keys(this._keyHoldMaps).find(
       (key) => this._keyHoldMaps[key] === event.code
     );
@@ -121,10 +150,14 @@ export class InputController {
   };
 
   onMouseMove = (event: MouseEvent) => {
+    // event.preventDefault();
+
     this.emit("mousemove", event);
   };
 
   onMouseDown = (event: MouseEvent) => {
+    // event.preventDefault();
+    console.log(event)
     let code;
     switch (event.buttons) {
       case 1:
@@ -146,6 +179,8 @@ export class InputController {
   };
 
   onMouseWheel = (event: WheelEvent) => {
+    // event.preventDefault();
+
     const code = event.deltaY > 0 ? "WheelUp" : "WheelDown";
     const key_func_name = Object.keys(this._keyImpulseMaps).find(
       (key) => this._keyImpulseMaps[key] === code
@@ -155,9 +190,17 @@ export class InputController {
   };
 
   handleInput = (event) => {
-    if (event.key_func_name === 'inventory') {
-      useGameStore.getState().toggleInventory();
-      console.log(useGameStore.getState().isInventoryVisible)
+    console.log(event)
+    if (event.key_func_name === "inventory") {
+      console.log(event)
+      const menuStatus =
+        this._menuStatus === MenuStatus.Playing
+          ? MenuStatus.Inventory
+          : MenuStatus.Playing;
+      useGameStore.setState({ menuStatus });
+      // useGameStore.getState().toggleInventory();
+      // console.log(useGameStore.getState().isInventoryVisible);
+      // this.exitPointerLock();
     }
-  }
+  };
 }

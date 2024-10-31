@@ -13,6 +13,18 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+* {
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+
+  /*
+    Introduced in Internet Explorer 10.
+    See http://ie.microsoft.com/testdrive/HTML5/msUserSelect/
+  */
+  -ms-user-select: none;
+}
+
 a {
   font-weight: 500;
   color: #646cff;
@@ -67,6 +79,18 @@ button:focus-visible {
   }
 }
 
+/*                                                                          
+                                                                         
+                                                                         
+                                                                         
+ ,adPPYba,  ,adPPYYba,  8b,dPPYba,   8b       d8  ,adPPYYba,  ,adPPYba,  
+a8"     ""  ""     `Y8  88P'   `"8a  `8b     d8'  ""     `Y8  I8[    ""  
+8b          ,adPPPPP88  88       88   `8b   d8'   ,adPPPPP88   `"Y8ba,   
+"8a,   ,aa  88,    ,88  88       88    `8b,d8'    88,    ,88  aa    ]8I  
+ `"Ybbd8"'  `"8bbdP"Y8  88       88      "8"      `"8bbdP"Y8  `"YbbdP"'  
+                                                                         
+                                                                          */
+
 #stats {
   top: 200px !important;
 }
@@ -83,6 +107,18 @@ button:focus-visible {
   height: 100vh;
 }
 
+/*                  
+             88  
+             ""  
+                 
+88       88  88  
+88       88  88  
+88       88  88  
+"8a,   ,a88  88  
+ `"YbbdP'Y8  88  
+                 
+                  */
+
 #ui {
   position: fixed;
   left: 0;
@@ -91,6 +127,18 @@ button:focus-visible {
   height: 100vh;
   z-index: 100;
 }
+
+/*                                                           
+88                                                        
+88                                                        
+88                                                        
+88,dPPYba,    ,adPPYba,   88,dPYba,,adPYba,    ,adPPYba,  
+88P'    "8a  a8"     "8a  88P'   "88"    "8a  a8P_____88  
+88       88  8b       d8  88      88      88  8PP"""""""  
+88       88  "8a,   ,a8"  88      88      88  "8b,   ,aa  
+88       88   `"YbbdP"'   88      88      88   `"Ybbd8"'  
+                                                          
+                                                           */
 
 #home-ui {
   position: absolute;
@@ -155,4 +203,48 @@ button:focus-visible {
 
 #login-ui p {
   display: inline;
+}
+
+                                                                                                    
+/* 88                                                                                                  
+""                                                      ,d                                          
+                                                        88                                          
+88  8b,dPPYba,   8b       d8   ,adPPYba,  8b,dPPYba,  MM88MMM  ,adPPYba,   8b,dPPYba,  8b       d8  
+88  88P'   `"8a  `8b     d8'  a8P_____88  88P'   `"8a   88    a8"     "8a  88P'   "Y8  `8b     d8'  
+88  88       88   `8b   d8'   8PP"""""""  88       88   88    8b       d8  88           `8b   d8'   
+88  88       88    `8b,d8'    "8b,   ,aa  88       88   88,   "8a,   ,a8"  88            `8b,d8'    
+88  88       88      "8"       `"Ybbd8"'  88       88   "Y888  `"YbbdP"'   88              Y88'     
+                                                                                           d8'      
+                                                                                          d8'        */
+
+#inventory-ui {
+  position: absolute;
+}
+
+#inventory-ui-container {
+  z-index: 100;
+
+  position: relative;
+  height: 100vh;
+  width: 100vw;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.inventory-window {
+  margin-top: -100px;
+  width: 400px;
+  height: 200px;
+
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  transition: border-color 0.25s;
 }

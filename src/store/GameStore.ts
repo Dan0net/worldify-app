@@ -2,24 +2,26 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware'
 
+export enum MenuStatus {
+  Playing,
+  Home,
+  Inventory,
+  Settings,
+  Login
+}
+
 type GameStore = {
   hasFirstChunkLoaded: boolean;
-  hasStarted: boolean;
-  isInventoryVisible: boolean;
-  setHasStarted: (hasStarted: boolean) => void;
   setHasFirstChunkLoaded: (hasFirstChunkLoaded: boolean) => void;
-  toggleInventory: () => void;
+  menuStatus: MenuStatus;
 };
 
 export const useGameStore = create<GameStore>()(
   subscribeWithSelector(
     (set) => ({
       hasFirstChunkLoaded: false,
-      hasStarted: false,
-      isInventoryVisible: false,
-      setHasStarted: (hasStarted) => set({ hasStarted }),
       setHasFirstChunkLoaded: (hasFirstChunkLoaded) => set({ hasFirstChunkLoaded }),
-      toggleInventory: () => set((state) => ({ isInventoryVisible: !state.isInventoryVisible }))
+      menuStatus: MenuStatus.Home,
     })
   )
 );
