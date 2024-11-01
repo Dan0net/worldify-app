@@ -1,0 +1,20 @@
+{
+  "materials": ["rock2", "bricks", "rock"],
+  "maps": {
+    "albedo": {
+      "width": 1024,
+      "height": 1024,
+      "channels": "rgba",
+      "layers": 3
+    },
+    "normal": {
+      "width": 1024,
+      "height": 1024,
+      "channels": "rgba",
+      "layers": 3
+    },
+    "ao": { "width": 1024, "height": 1024, "channels": "r", "layers": 3 },
+    "roughness": { "width": 1024, "height": 1024, "channels": "r", "layers": 3 }
+  },
+  "indicies": { "rock2": 0, "bricks": 1, "rock": 2 }
+}

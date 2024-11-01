@@ -560,7 +560,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
     // Load material indices
     const materialIndicesResponse = await fetch(
-      `${apiUrl}/materialDefinitions.json`
+      `materials/materialDefinitions.json`
     );
     const materialIndices = await materialIndicesResponse.json();
 
@@ -570,7 +570,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
       const channelSize = channels.length
       console.log(mapType, width, height, channelSize, layers)
       // Fetch binary data
-      const dataResponse = await fetch(`${apiUrl}/${mapType}.bin`);
+      const dataResponse = await fetch(`materials/${mapType}.bin`);
       const arrayBuffer = await dataResponse.arrayBuffer();
 
       // Create the typed array from the ArrayBuffer
