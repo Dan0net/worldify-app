@@ -1,5 +1,4 @@
 // 3d/ChunkCoordinator.ts
-import { Chunk } from "./Chunk";
 import {
   Box3,
   Group,
@@ -7,23 +6,23 @@ import {
   MeshStandardMaterial,
   Object3D,
   Quaternion,
-  Scene,
-  Vector3,
+  Vector3
 } from "three";
-import { useSettingStore } from "../store/SettingStore";
-import { useChunkStore } from "../store/ChunkStore";
-import { usePlayerStore } from "../store/PlayerStore";
-import { API } from "../api/API";
-import { ChunkCoord, ChunkData } from "../utils/interfaces";
-import { getChunkKey } from "../utils/functions";
 import {
   MeshBVH,
   MeshBVHHelper,
   StaticGeometryGenerator,
 } from "three-mesh-bvh";
-import { useGameStore } from "../store/GameStore";
+import { API } from "../api/API";
 import { BuildPreset } from "../builder/BuildPresets";
-import { TERRAIN_SCALE, TERRAIN_SIZE } from "../utils/constants";
+import { useChunkStore } from "../store/ChunkStore";
+import { useGameStore } from "../store/GameStore";
+import { usePlayerStore } from "../store/PlayerStore";
+import { useSettingStore } from "../store/SettingStore";
+import { TERRAIN_SIZE } from "../utils/constants";
+import { chunkCoordsToKey } from "../utils/functions";
+import { ChunkCoord, ChunkData } from "../utils/interfaces";
+import { Chunk } from "./Chunk";
 
 export class ChunkCoordinator extends Object3D {
   private pendingRequests = new Map<string, Promise<ChunkData>>();
@@ -36,6 +35,8 @@ export class ChunkCoordinator extends Object3D {
 
   private chunkKeysVisible = new Set<string>();
   private chunkKeysCollidable = new Set<string>();
+
+  private chunkKeysToPost = new Set<string>();
 
   private unsubPlayerStore: () => void;
 
@@ -86,11 +87,13 @@ export class ChunkCoordinator extends Object3D {
 
     for (let x = -viewDistance; x <= viewDistance; x++) {
       for (let z = -viewDistance; z <= viewDistance; z++) {
-        chunksToLoad.push({
-          x: baseChunkCoord.x + x,
-          y: baseChunkCoord.y,
-          z: baseChunkCoord.z + z,
-        });
+        for (let y = -viewDistance; y <= viewDistance; y++) {
+          chunksToLoad.push({
+            x: baseChunkCoord.x + x,
+            y: baseChunkCoord.y + y,
+            z: baseChunkCoord.z + z,
+          });
+        }
       }
 
       const chunkPromises = chunksToLoad.map((chunkCoords) =>
@@ -111,7 +114,7 @@ export class ChunkCoordinator extends Object3D {
   private async getOrLoadChunk(
     chunkCoord: ChunkCoord
   ): Promise<ChunkData | void> {
-    const chunkKey = getChunkKey(chunkCoord);
+    const chunkKey = chunkCoordsToKey(chunkCoord);
 
     if (this.chunks.has(chunkKey) || this.pendingRequests.has(chunkKey))
       return Promise.resolve();
@@ -130,8 +133,6 @@ export class ChunkCoordinator extends Object3D {
     const chunkPromise = this.api
       .getChunk(chunkCoord)
       .then((chunkData) => {
-        useChunkStore.getState().addChunkData(chunkKey, chunkData);
-
         return chunkData;
       })
       .finally(() => {
@@ -145,12 +146,14 @@ export class ChunkCoordinator extends Object3D {
   }
 
   private addChunk(chunkData: ChunkData) {
-    const chunkKey = getChunkKey({
+    const chunkKey = chunkCoordsToKey({
       x: chunkData.x,
       y: chunkData.y,
       z: chunkData.z,
     });
     // console.log('adding ', chunkKey)
+
+    useChunkStore.getState().addChunkData(chunkKey, chunkData);
 
     const chunk = new Chunk(chunkData);
     this.chunks.set(chunkKey, chunk);
@@ -246,28 +249,28 @@ export class ChunkCoordinator extends Object3D {
     const chunkKeys = new Set<string>();
 
     chunkKeys.add(
-      getChunkKey({ x: _bbox.min.x, y: _bbox.min.y, z: _bbox.min.z })
+      chunkCoordsToKey({ x: _bbox.min.x, y: _bbox.min.y, z: _bbox.min.z })
     );
     chunkKeys.add(
-      getChunkKey({ x: _bbox.max.x, y: _bbox.min.y, z: _bbox.min.z })
+      chunkCoordsToKey({ x: _bbox.max.x, y: _bbox.min.y, z: _bbox.min.z })
     );
     chunkKeys.add(
-      getChunkKey({ x: _bbox.min.x, y: _bbox.max.y, z: _bbox.min.z })
+      chunkCoordsToKey({ x: _bbox.min.x, y: _bbox.max.y, z: _bbox.min.z })
     );
     chunkKeys.add(
-      getChunkKey({ x: _bbox.max.x, y: _bbox.max.y, z: _bbox.min.z })
+      chunkCoordsToKey({ x: _bbox.max.x, y: _bbox.max.y, z: _bbox.min.z })
     );
     chunkKeys.add(
-      getChunkKey({ x: _bbox.min.x, y: _bbox.min.y, z: _bbox.max.z })
+      chunkCoordsToKey({ x: _bbox.min.x, y: _bbox.min.y, z: _bbox.max.z })
     );
     chunkKeys.add(
-      getChunkKey({ x: _bbox.max.x, y: _bbox.min.y, z: _bbox.max.z })
+      chunkCoordsToKey({ x: _bbox.max.x, y: _bbox.min.y, z: _bbox.max.z })
     );
     chunkKeys.add(
-      getChunkKey({ x: _bbox.min.x, y: _bbox.max.y, z: _bbox.max.z })
+      chunkCoordsToKey({ x: _bbox.min.x, y: _bbox.max.y, z: _bbox.max.z })
     );
     chunkKeys.add(
-      getChunkKey({ x: _bbox.max.x, y: _bbox.max.y, z: _bbox.max.z })
+      chunkCoordsToKey({ x: _bbox.max.x, y: _bbox.max.y, z: _bbox.max.z })
     );
 
     // console.log(chunkKeys.size, chunkKeys)
@@ -284,17 +287,41 @@ export class ChunkCoordinator extends Object3D {
         );
 
         meshChanged = meshChanged || (_change && isPlacing);
+
+        if (_change && isPlacing) {
+          this.saveChunk(chunk);
+        }
       }
     }
 
-    for(const chunkKey of this.chunkKeysCollidable){
-      if(!chunkKeys.has(chunkKey)) {
+    for (const chunkKey of this.chunkKeysCollidable) {
+      if (!chunkKeys.has(chunkKey)) {
         const chunk = this.chunks.get(chunkKey);
         chunk?.copyTemp();
       }
     }
 
     if (meshChanged) this.updateCollider();
+  }
+
+  saveChunk(chunk: Chunk) {
+    const chunkKey = chunk.chunkKey;
+    const chunkData = chunk.toChunkData();
+
+    useChunkStore.getState().addChunkData(chunkKey, chunkData);
+    // this.chunkKeysToPost.add(chunkKey);
+    const chunkCoord = chunk.chunkCoord;
+    const grid = chunkData.grid;
+
+    this.api
+      .postChunk(chunkCoord, grid)
+      .then((chunkData) => {
+        console.log(chunkData);
+      })
+      .finally(() => {
+        // Remove from pendingRequests after completion
+        // this.pendingRequests.delete(chunkKey);
+      });
   }
 
   dispose() {

@@ -1,4 +1,4 @@
-import { ChunkData, UserData } from "../utils/interfaces";
+import { ChunkCoord, ChunkData, UserData } from "../utils/interfaces";
 import { useSessionStore } from "../store/SessionStore";
 
 // api/API.ts
@@ -15,12 +15,15 @@ export class API {
 
     if (auth) {
       const { jwtToken } = useSessionStore.getState();
+      if(!jwtToken) throw new Error('No valid login JWT Token')
+
       request.headers["Authorization"] = `Bearer ${jwtToken}`;
     }
 
     if (body) {
       request["body"] = JSON.stringify(body);
     }
+
 
     try {
       const response = await fetch(uri, request);
@@ -70,9 +73,18 @@ export class API {
     return this.authenticateUser(email, password, false);
   }
 
-  async getChunk(chunkCoord): Promise<ChunkData> {
+  async getChunk(chunkCoord: ChunkCoord): Promise<ChunkData> {
     return this.fetchJsonHandler(
-      `${this.apiUrl}/chunks/${chunkCoord.x}/${chunkCoord.y}/${chunkCoord.z}`
+      `${this.apiUrl}/chunks/${chunkCoord.x}/${chunkCoord.y}/${chunkCoord.z}`,
+      null,
+      false
+    );
+  }
+
+  async postChunk(chunkCoord: ChunkCoord, grid: string): Promise<ChunkData> {
+    return this.fetchJsonHandler(
+      `${this.apiUrl}/chunks/${chunkCoord.x}/${chunkCoord.y}/${chunkCoord.z}`,
+      {grid}
     );
   }
 }

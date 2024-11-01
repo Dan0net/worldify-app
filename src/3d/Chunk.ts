@@ -15,9 +15,11 @@ import { ChunkMesh } from "./ChunkMesh";
 import {
   base64ToUint8Array,
   clamp,
+  compressFloat32ArrayToUint8,
   decompressUint8ToFloat32,
   gridCellToIndex,
   pointIsInsideGrid,
+  uint8ArrayToBase64,
   worldToChunkPosition,
 } from "../utils/functions";
 import { generateMeshWorker } from "../workers/MeshWorkerMultimat";
@@ -44,8 +46,9 @@ export class Chunk extends Object3D {
     this.chunkCoord = { x: chunkData.x, y: chunkData.y, z: chunkData.z };
 
     this.mesh = new ChunkMesh();
-    this.grid = this.readChunkGridData(chunkData);
-    this.renderMesh();
+    this.grid = this.readGridFromString(chunkData);
+    this.renderMesh(true);
+
     this.add(this.mesh);
     this.add(this.meshTemp);
 
@@ -60,9 +63,24 @@ export class Chunk extends Object3D {
     this.updateMatrix();
   }
 
-  readChunkGridData(chunkData: ChunkData) {
+  readGridFromString(chunkData: ChunkData): Float32Array {
     const gridUint8 = base64ToUint8Array(chunkData.grid);
     return decompressUint8ToFloat32(gridUint8);
+  }
+
+  gridToString(): string {
+    const gridUint8 = compressFloat32ArrayToUint8(this.grid);
+    return uint8ArrayToBase64(gridUint8);
+  }
+
+  toChunkData(): ChunkData {
+    return {
+      id: this.chunkKey,
+      grid: this.gridToString(),
+      x: this.chunkCoord.x,
+      y: this.chunkCoord.y,
+      z: this.chunkCoord.z
+    }
   }
 
   renderMesh(isPlacing = true) {
@@ -109,9 +127,7 @@ export class Chunk extends Object3D {
     if (!isPlacing) {
       this.gridTemp = new Float32Array(this.grid);
     }
-    // console.log(this.chunkKey)
-    let c = 0;
-    let e = 0;
+
     for (let y = bbox.min.y; y <= bbox.max.y; y++) {
       for (let z = bbox.min.z; z <= bbox.max.z; z++) {
         for (let x = bbox.min.x; x <= bbox.max.x; x++) {
@@ -133,12 +149,6 @@ export class Chunk extends Object3D {
             //   this.saveGridPosition(gridPosition, buildConfiguration.material);
             // console.log(this.chunkKey, this._gridCell)
             // }
-            // c = !_change ? c+1 : c;
-            // e = _change ? e+1 : e;
-            // console.log(x,this.p.x)
-          } else {
-           
-            // console.log(this.chunkKey, this._gridCell)
           }
         }
       }
@@ -182,13 +192,16 @@ export class Chunk extends Object3D {
   ): boolean {
     const _grid = isPlacing ? this.grid : this.gridTemp;
     if (!_grid) return false;
+    
     const gridIndex = gridCellToIndex(p);
+    
     v = clamp(v, -0.5, 0.5);
-    console.log(this.chunkKey, constructive,  v)
+
     if (constructive && v > _grid[gridIndex]) {
       _grid[gridIndex] = v;
       return true;
     }
+
     if (!constructive && v < _grid[gridIndex]) {
       _grid[gridIndex] = v;
       return true;

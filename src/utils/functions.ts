@@ -2,8 +2,13 @@ import { Box3, LineSegments, Mesh, Object3D, Vector3 } from "three";
 import { ChunkCoord } from "./interfaces";
 import { TERRAIN_GRID_SIZE_MARGIN, TERRAIN_SCALE } from "./constants";
 
-export function getChunkKey(chunkCoords: ChunkCoord): string {
+export function chunkCoordsToKey(chunkCoords: ChunkCoord): string {
   return `${chunkCoords.x}:${chunkCoords.y}:${chunkCoords.z}`;
+}
+
+export function chunkKeyToCord(chunkKey: string): ChunkCoord {
+  const split = chunkKey.split(':');
+  return {x: parseInt(split[0]), y: parseInt(split[0]), z: parseInt(split[0])};
 }
 
 export function worldToChunkPosition(point: Vector3, chunkPosition: Vector3) {
