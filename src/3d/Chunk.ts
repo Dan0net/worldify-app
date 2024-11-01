@@ -5,35 +5,45 @@ import {
   MeshStandardMaterial,
   Object3D,
   PlaneGeometry,
+  Quaternion,
   Scene,
+  Vector2,
   Vector3,
 } from "three";
 import { ChunkData } from "../utils/interfaces";
 import { ChunkMesh } from "./ChunkMesh";
 import {
   base64ToUint8Array,
+  clamp,
   decompressUint8ToFloat32,
+  gridCellToIndex,
+  pointIsInsideGrid,
   worldToChunkPosition,
 } from "../utils/functions";
 import { generateMeshWorker } from "../workers/MeshWorkerMultimat";
 import { TERRAIN_SCALE, TERRAIN_SIZE } from "../utils/constants";
 import { BuildPreset } from "../builder/BuildPresets";
+import { VEC2_0, VEC3_0 } from "../utils/vector_utils";
 
 export class Chunk extends Object3D {
-  private grid: Float32Array;
-  private gridTemp: Float32Array | null = null;
-  public mesh: ChunkMesh;
-  public meshTemp: ChunkMesh | null = null;
+  private chunkKey: string;
+
+  private grid = new Float32Array();
+  private gridTemp = new Float32Array();
+  public mesh = new ChunkMesh();
+  public meshTemp = new ChunkMesh();
+
+  private _gridCell: Vector3 = new Vector3();
 
   constructor(private chunkData: ChunkData) {
     super();
+    this.chunkKey = chunkData.id;
 
     this.mesh = new ChunkMesh();
-
     this.grid = this.readChunkGridData(chunkData);
-    this.mesh.generateMeshData(this.grid);
-    this.mesh.updateMesh();
+    this.renderMesh();
     this.add(this.mesh);
+    this.add(this.meshTemp);
 
     this.scale.set(TERRAIN_SCALE, TERRAIN_SCALE, TERRAIN_SCALE);
 
@@ -51,8 +61,18 @@ export class Chunk extends Object3D {
     return decompressUint8ToFloat32(gridUint8);
   }
 
+  renderMesh(isPlacing = true) {
+    const _mesh = isPlacing ? this.mesh : this.meshTemp;
+    const _grid = isPlacing ? this.grid : this.gridTemp;
+    _mesh.generateMeshData(_grid);
+    _mesh.updateMesh();
+    // console.log(_mesh);
+  }
+
+  private p: Vector3 = new Vector3();
   public draw(
     center: Vector3,
+    inverseRotation: Quaternion,
     bbox: Box3,
     buildConfig: BuildPreset,
     isPlacing = false
@@ -60,10 +80,98 @@ export class Chunk extends Object3D {
     worldToChunkPosition(center, this.position);
     worldToChunkPosition(bbox.min, this.position);
     worldToChunkPosition(bbox.max, this.position);
-    
+    bbox.min.floor();
+    bbox.max.ceil();
+
+    const drawFunc = {
+      sphere: this.drawSphere,
+      cube: this.drawCube,
+      cylinder: this.drawCylinder,
+    }[buildConfig.shape];
+    if (!drawFunc) return;
+
+    const weight = buildConfig.constructive ? 1 : -1;
+    let isChanged = false;
+
     if (!isPlacing) {
-      if (!this.meshTemp) this.meshTemp = new ChunkMesh();
-      if (!this.gridTemp) this.gridTemp = new Float32Array(this.grid);
+      this.gridTemp = new Float32Array(this.grid);
     }
+    // console.log(bbox, center)
+
+    for (let y = bbox.min.y; y <= bbox.max.y; y++) {
+      for (let z = bbox.min.z; z <= bbox.max.z; z++) {
+        for (let x = bbox.min.x; x <= bbox.max.x; x++) {
+          this._gridCell.set(x, y, z);
+          if (pointIsInsideGrid(this._gridCell)) {
+            this.p.set(x, y, z).sub(center);
+            this.p.applyQuaternion(inverseRotation);
+
+            const d = drawFunc(this.p, buildConfig);
+
+            const _change = this.addValueToGrid(
+              this._gridCell,
+              d * weight,
+              buildConfig.constructive,
+              isPlacing
+            );
+            isChanged = isChanged || _change;
+            // if (val * p >= -0.5) {
+            //   this.saveGridPosition(gridPosition, buildConfiguration.material);
+            // }
+          }
+        }
+      }
+    }
+    // console.log(this.chunkKey, isPlacing, isChanged);
+    if (isChanged) this.renderMesh(isPlacing);
+  }
+
+  drawSphere(p: Vector3, buildConfig: BuildPreset) {
+    let d = p.length() - buildConfig.size.x * 2;
+    return -d;
+  }
+
+  drawCube(p: Vector3, buildConfig: BuildPreset) {
+    p.set(Math.abs(p.x), Math.abs(p.y), Math.abs(p.z));
+
+    const q = p.sub(buildConfig.size); // clone or set original?
+    const outsideD = q.clone().max(VEC3_0).length();
+    const insideD = Math.min(Math.max(q.x, q.y, q.z), 0.0);
+    const d = outsideD + insideD;
+    return -d;
+  }
+
+  drawCylinder(p: Vector3, buildConfig: BuildPreset) {
+    const l = new Vector2(p.x, p.z).length();
+    const d = new Vector2(
+      Math.abs(l) - buildConfig.size.x,
+      Math.abs(p.y) - buildConfig.size.y
+    );
+    const a = Math.min(Math.max(d.x, d.y), 0.0) + d.max(VEC2_0).length();
+    return -a;
+  }
+
+  addValueToGrid(
+    p: Vector3,
+    v: number,
+    constructive: boolean,
+    isPlacing: boolean
+  ): boolean {
+    const _grid = isPlacing ? this.grid : this.gridTemp;
+    if (!_grid) return false;
+    const gridIndex = gridCellToIndex(p);
+
+    v = clamp(v, -0.5, 0.5);
+
+    if (constructive && v > _grid[gridIndex]) {
+      _grid[gridIndex] = v;
+      return true;
+    }
+    if (!constructive && v < _grid[gridIndex]) {
+      _grid[gridIndex] = v;
+      return true;
+    }
+
+    return false;
   }
 }

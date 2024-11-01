@@ -6,6 +6,7 @@ import {
   Mesh,
   MeshStandardMaterial,
   Object3D,
+  Quaternion,
   Scene,
   Vector3,
 } from "three";
@@ -29,7 +30,7 @@ export class ChunkCoordinator extends Object3D {
   private api = new API();
   public castableChunkMeshs = new Group();
   public castableCollider: Mesh = new Mesh();
-  
+
   private chunks = new Map<string, Chunk>();
 
   private unsubPlayerStore: () => void;
@@ -110,14 +111,14 @@ export class ChunkCoordinator extends Object3D {
     const chunkDatas = useChunkStore.getState().chunkData;
     // console.log(chunkKey, Object.keys(chunkDatas))
     if (chunkKey in chunkDatas) {
-    const existingChunk = chunkDatas[chunkKey];
+      const existingChunk = chunkDatas[chunkKey];
       if (existingChunk) {
-        console.log('loading chunk from storage', chunkCoord)
+        console.log("loading chunk from storage", chunkCoord);
         return existingChunk;
       }
     }
 
-    console.log('requesting chunk from api', chunkCoord)
+    console.log("requesting chunk from api", chunkCoord);
     const chunkPromise = this.api
       .getChunk(chunkCoord)
       .then((chunkData) => {
@@ -146,8 +147,8 @@ export class ChunkCoordinator extends Object3D {
     const chunk = new Chunk(chunkData);
     this.chunks.set(chunkKey, chunk);
 
-    this.castableChunkMeshs.attach(chunk);
-    // this.scene.add(chunk.mesh);
+    this.castableChunkMeshs.attach(chunk.mesh);
+    this.attach(chunk.meshTemp);
 
     this.updateCollider();
   }
@@ -172,30 +173,54 @@ export class ChunkCoordinator extends Object3D {
 
   public drawToChunks(
     center: Vector3,
+    inverseRotation: Quaternion,
     bbox: Box3,
     buildConfig: BuildPreset,
     isPlacing = false
   ) {
-    const _bbox = bbox.clone()
+    const _bbox = bbox.clone();
     _bbox.min.divideScalar(TERRAIN_SIZE).floor();
     _bbox.max.divideScalar(TERRAIN_SIZE).floor();
 
     const chunkKeys = new Set<string>();
 
-    chunkKeys.add(getChunkKey({ x: _bbox.min.x, y: _bbox.min.y, z: _bbox.min.z }));
-    chunkKeys.add(getChunkKey({ x: _bbox.max.x, y: _bbox.min.y, z: _bbox.min.z }));
-    chunkKeys.add(getChunkKey({ x: _bbox.min.x, y: _bbox.max.y, z: _bbox.min.z }));
-    chunkKeys.add(getChunkKey({ x: _bbox.max.x, y: _bbox.max.y, z: _bbox.min.z }));
-    chunkKeys.add(getChunkKey({ x: _bbox.min.x, y: _bbox.min.y, z: _bbox.max.z }));
-    chunkKeys.add(getChunkKey({ x: _bbox.max.x, y: _bbox.min.y, z: _bbox.max.z }));
-    chunkKeys.add(getChunkKey({ x: _bbox.min.x, y: _bbox.max.y, z: _bbox.max.z }));
-    chunkKeys.add(getChunkKey({ x: _bbox.max.x, y: _bbox.max.y, z: _bbox.max.z }));
+    chunkKeys.add(
+      getChunkKey({ x: _bbox.min.x, y: _bbox.min.y, z: _bbox.min.z })
+    );
+    chunkKeys.add(
+      getChunkKey({ x: _bbox.max.x, y: _bbox.min.y, z: _bbox.min.z })
+    );
+    chunkKeys.add(
+      getChunkKey({ x: _bbox.min.x, y: _bbox.max.y, z: _bbox.min.z })
+    );
+    chunkKeys.add(
+      getChunkKey({ x: _bbox.max.x, y: _bbox.max.y, z: _bbox.min.z })
+    );
+    chunkKeys.add(
+      getChunkKey({ x: _bbox.min.x, y: _bbox.min.y, z: _bbox.max.z })
+    );
+    chunkKeys.add(
+      getChunkKey({ x: _bbox.max.x, y: _bbox.min.y, z: _bbox.max.z })
+    );
+    chunkKeys.add(
+      getChunkKey({ x: _bbox.min.x, y: _bbox.max.y, z: _bbox.max.z })
+    );
+    chunkKeys.add(
+      getChunkKey({ x: _bbox.max.x, y: _bbox.max.y, z: _bbox.max.z })
+    );
 
-    console.log(chunkKeys.size, chunkKeys)
+    // console.log(chunkKeys.size, chunkKeys)
 
-    for (const chunkKey in chunkKeys) {
-      const chunk = this.chunks.get(chunkKey)
-      if (chunk) chunk.draw(center, bbox.clone(), buildConfig, isPlacing);
+    for (const chunkKey of chunkKeys) {
+      const chunk = this.chunks.get(chunkKey);
+      if (chunk)
+        chunk.draw(
+          center,
+          inverseRotation,
+          bbox.clone(),
+          buildConfig,
+          isPlacing
+        );
     }
   }
 

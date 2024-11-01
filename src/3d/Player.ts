@@ -22,13 +22,13 @@ import {
   PLAYER_RUN_SPEED,
   PLAYER_SPEED,
   TERRAIN_SIZE,
-  UP_VECTOR3,
 } from "../utils/constants";
 import { usePlayerStore } from "../store/PlayerStore";
 import { useSettingStore } from "../store/SettingStore";
 import { ChunkCoordinator } from "./ChunkCoordinator";
 import { RoundedBoxGeometry } from "three/examples/jsm/Addons.js";
 import { InputController } from "../input/InputController";
+import { UP } from "../utils/vector_utils";
 
 export class Player extends Object3D {
   private playerIsOnGround = false;
@@ -148,22 +148,22 @@ export class Player extends Object3D {
         ? PLAYER_RUN_SPEED
         : PLAYER_SPEED;
       if (this.inputController.keyDownFuncs.has("move_forward")) {
-        this.tempVector.set(0, 0, -1).applyAxisAngle(UP_VECTOR3, angle);
+        this.tempVector.set(0, 0, -1).applyAxisAngle(UP, angle);
         this.position.addScaledVector(this.tempVector, moveSpeed * delta);
       }
 
       if (this.inputController.keyDownFuncs.has("move_backward")) {
-        this.tempVector.set(0, 0, 1).applyAxisAngle(UP_VECTOR3, angle);
+        this.tempVector.set(0, 0, 1).applyAxisAngle(UP, angle);
         this.position.addScaledVector(this.tempVector, moveSpeed * delta);
       }
 
       if (this.inputController.keyDownFuncs.has("move_left")) {
-        this.tempVector.set(-1, 0, 0).applyAxisAngle(UP_VECTOR3, angle);
+        this.tempVector.set(-1, 0, 0).applyAxisAngle(UP, angle);
         this.position.addScaledVector(this.tempVector, moveSpeed * delta);
       }
 
       if (this.inputController.keyDownFuncs.has("move_right")) {
-        this.tempVector.set(1, 0, 0).applyAxisAngle(UP_VECTOR3, angle);
+        this.tempVector.set(1, 0, 0).applyAxisAngle(UP, angle);
         this.position.addScaledVector(this.tempVector, moveSpeed * delta);
       }
 

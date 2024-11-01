@@ -11,6 +11,7 @@ export interface BuildPreset {
   shape: string;
   snapShape: string;
   constructive: boolean;
+  snap: boolean,
   size: Vector3;
   material: string;
   align: string;
@@ -23,7 +24,8 @@ export const BuildPresets: BuildPreset[] = [
     shape: "cube",
     snapShape: 'plane',
     constructive: true,
-    size: new Vector3(3, 3, 0.25),
+    snap: true,
+    size: new Vector3(3, 3, 0.6),
     material: 'brick',
     align: "base",
     rotation: new Euler(0,0,0, 'XYZ'),
@@ -33,6 +35,7 @@ export const BuildPresets: BuildPreset[] = [
     shape: "sphere",
     snapShape: 'point',
     constructive: false,
+    snap: false,
     size: new Vector3(1, 0, 0),
     material: 'grass',
     align: "center",
@@ -43,6 +46,7 @@ export const BuildPresets: BuildPreset[] = [
     shape: "sphere",
     snapShape: 'point',
     constructive: true,
+    snap: false,
     size: new Vector3(1, 0, 0),
     material: 'grass',
     align: "center",
@@ -53,7 +57,8 @@ export const BuildPresets: BuildPreset[] = [
     shape: "cube",
     snapShape: 'plane',
     constructive: true,
-    size: new Vector3(3, 3, 0.5),
+    snap: true,
+    size: new Vector3(3, 3, 0.75),
     material: 'brick',
     align: "base",
     rotation: new Euler(Math.PI / 3,0,0, 'XYZ'),
@@ -61,9 +66,10 @@ export const BuildPresets: BuildPreset[] = [
   {
     name: "pilar",
     shape: "cube",
+    snap: true,
     snapShape: 'line',
     constructive: true,
-    size: new Vector3(0.5, 3, 0.5),
+    size: new Vector3(1, 3, 1),
     material: 'brick',
     align: "base",
     rotation: new Euler(0,0,0, 'XYZ'),

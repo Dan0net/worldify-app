@@ -2,8 +2,6 @@ import { Vector3 } from "three";
 
 export const _PI_2 = Math.PI / 2;
 
-export const UP_VECTOR3 = new Vector3( 0, 1, 0 );
-
 export const PLAYER_SPEED = 10;
 export const PLAYER_RUN_SPEED = 20;
 export const PLAYER_GRAVITY = -40;

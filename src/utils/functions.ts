@@ -10,10 +10,27 @@ export function worldToChunkPosition(point: Vector3, chunkPosition: Vector3) {
   point.sub(chunkPosition).divideScalar(TERRAIN_SCALE);
 }
 
+export function gridCellToIndex(p: Vector3) {
+  return (
+    p.z * (TERRAIN_GRID_SIZE_MARGIN * TERRAIN_GRID_SIZE_MARGIN) +
+    p.y * TERRAIN_GRID_SIZE_MARGIN +
+    p.x
+  );
+}
+
 export function pointIsInsideGrid(point: Vector3) {
-  return ( point.x >= 0 && point.x < TERRAIN_GRID_SIZE_MARGIN &&
-    point.y >= 0 && point.y < TERRAIN_GRID_SIZE_MARGIN &&
-    point.z >= 0 && point.z < TERRAIN_GRID_SIZE_MARGIN );
+  return (
+    point.x >= 0 &&
+    point.x < TERRAIN_GRID_SIZE_MARGIN &&
+    point.y >= 0 &&
+    point.y < TERRAIN_GRID_SIZE_MARGIN &&
+    point.z >= 0 &&
+    point.z < TERRAIN_GRID_SIZE_MARGIN
+  );
+}
+
+export function clamp(v: number, min: number, max: number) {
+  return Math.min(Math.max(v, min), max);
 }
 
 // todo refactor to utils and make more efficient

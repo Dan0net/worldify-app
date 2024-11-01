@@ -35,6 +35,7 @@ import { getExtents } from "../utils/functions";
 import BuildSnapMarker from "./BuildSnapMarker";
 import { string } from "three/webgpu";
 import { MenuStatus, useGameStore } from "../store/GameStore";
+import { FORWARD, LEFT, UP, VEC2_0 } from "../utils/vector_utils";
 
 export class Builder extends Object3D {
   private buildMarker = new BuildMarker();
@@ -58,13 +59,10 @@ export class Builder extends Object3D {
     BuildPresets[usePlayerStore.getState().buildPreset];
 
   private raycaster = new Raycaster();
-  private _vector2 = new Vector2(0, 0);
   private intersect: Intersection | null = null;
   private _cameraDir = new Vector3();
   private _cameraPos = new Vector3();
-  private _up = new Vector3(0, 1, 0);
-  private _left = new Vector3(1, 0, 0);
-  private _forward = new Vector3(0, 0, 1);
+
   private _rotationY = 0;
   private _bbox = new Box3();
   private _bboxCollider = new Box3();
@@ -177,29 +175,31 @@ export class Builder extends Object3D {
   }
 
   placeBuild() {
-    const _markersWorldPos = this.buildSnapMarker.getMarkerWorldPositions();
-    // const _markers = this.buildSnapMarker.generateSnapMarkers(
-    //   _markersWorldPos
-    // );
+    if (this.buildPresetConfig.snap) {
+      const _markersWorldPos = this.buildSnapMarker.getMarkerWorldPositions();
+      // const _markers = this.buildSnapMarker.generateSnapMarkers(
+      //   _markersWorldPos
+      // );
 
-    for (const p of _markersWorldPos) {
-      const key = `${p.x}:${p.y}:${p.z}`;
-
-      if (!this.snapPointMap.has(key)) {
-        this.snapPointMap.set(key, p);
-        const marker = this.buildSnapMarker.generateSnapMarker(p.x, p.y, p.z);
-        this.snapMarkers.push(marker);
-        this.add(marker);
-      }
-    }
-
-    while (this.snapMarkers.length > BUILD_SNAP_MARKER_COUNT_MAX) {
-      const marker = this.snapMarkers.shift();
-      if (marker) {
-        const p = marker.position;
+      for (const p of _markersWorldPos) {
         const key = `${p.x}:${p.y}:${p.z}`;
-        this.snapPointMap.delete(key);
-        this.remove(marker);
+
+        if (!this.snapPointMap.has(key)) {
+          this.snapPointMap.set(key, p);
+          const marker = this.buildSnapMarker.generateSnapMarker(p.x, p.y, p.z);
+          this.snapMarkers.push(marker);
+          this.add(marker);
+        }
+      }
+
+      while (this.snapMarkers.length > BUILD_SNAP_MARKER_COUNT_MAX) {
+        const marker = this.snapMarkers.shift();
+        if (marker) {
+          const p = marker.position;
+          const key = `${p.x}:${p.y}:${p.z}`;
+          this.snapPointMap.delete(key);
+          this.remove(marker);
+        }
       }
     }
 
@@ -218,7 +218,7 @@ export class Builder extends Object3D {
 
     const rotation = this.projectBuildShape(center, normal);
 
-    this.snapBuildShape(center, rotation);
+    if (this.buildPresetConfig.snap) this.snapBuildShape(center, rotation);
 
     this.buildCollider.position.copy(center);
     this.buildSnapMarker.position.copy(center);
@@ -241,6 +241,7 @@ export class Builder extends Object3D {
 
     this.chunkCoordinator.drawToChunks(
       center.clone(),
+      rotation.invert(),
       this._bboxShape.clone(),
       this.buildPresetConfig,
       isPlacing
@@ -248,7 +249,7 @@ export class Builder extends Object3D {
   }
 
   raycast(): { center: Vector3; normal: Vector3 } {
-    this.raycaster.setFromCamera(this._vector2, this.camera); // Example direction
+    this.raycaster.setFromCamera(VEC2_0, this.camera); // Example direction
     const intersect = this.raycaster.intersectObject(
       this.chunkCoordinator.castableCollider,
       false
@@ -283,11 +284,11 @@ export class Builder extends Object3D {
 
     // apply build rotation
     // Step 1: Create a quaternion for the Y-axis rotation (world space)
-    this._yAxisQuaternion.setFromAxisAngle(this._up, this._rotationY + Math.PI);
+    this._yAxisQuaternion.setFromAxisAngle(UP, this._rotationY + Math.PI);
 
     // Step 2: Create a quaternion for the X-axis rotation (local space)
     this._xAxisQuaternion.setFromAxisAngle(
-      this._left,
+      LEFT,
       this.buildPresetConfig.rotation.x
     );
 
@@ -311,7 +312,7 @@ export class Builder extends Object3D {
       const inverseNormal = new Vector3(-normal.x, 0, -normal.z).normalize();
 
       const inverseNormalQuaternion = new Quaternion().setFromUnitVectors(
-        this._forward,
+        FORWARD,
         inverseNormal
       );
       const tempQuaternion = new Quaternion().multiplyQuaternions(
@@ -333,7 +334,7 @@ export class Builder extends Object3D {
         const normalA = new Vector3(normal.x, 0, normal.z).normalize();
 
         const offsetQuarternion = new Quaternion().setFromUnitVectors(
-          this._forward,
+          FORWARD,
           normalA
         );
         offset.applyQuaternion(offsetQuarternion);
