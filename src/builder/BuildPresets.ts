@@ -25,7 +25,7 @@ export const BuildPresets: BuildPreset[] = [
     snapShape: 'plane',
     constructive: true,
     snap: true,
-    size: new Vector3(3, 3, 0.6),
+    size: new Vector3(3, 3, 1),
     material: 'brick',
     align: "base",
     rotation: new Euler(0,0,0, 'XYZ'),

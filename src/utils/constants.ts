@@ -4,6 +4,7 @@ export const _PI_2 = Math.PI / 2;
 
 export const PLAYER_SPEED = 10;
 export const PLAYER_RUN_SPEED = 20;
+export const PLAYER_JUMP_VELOCITY = 15;
 export const PLAYER_GRAVITY = -40;
 export const PLAYER_CAMERA_ANGLE_MAX = Math.PI;
 export const PLAYER_CAMERA_ANGLE_MIN = 0;

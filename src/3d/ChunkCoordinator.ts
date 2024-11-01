@@ -23,7 +23,7 @@ import {
 } from "three-mesh-bvh";
 import { useGameStore } from "../store/GameStore";
 import { BuildPreset } from "../builder/BuildPresets";
-import { TERRAIN_SIZE } from "../utils/constants";
+import { TERRAIN_SCALE, TERRAIN_SIZE } from "../utils/constants";
 
 export class ChunkCoordinator extends Object3D {
   private pendingRequests = new Map<string, Promise<ChunkData>>();
@@ -31,7 +31,11 @@ export class ChunkCoordinator extends Object3D {
   public castableChunkMeshs = new Group();
   public castableCollider: Mesh = new Mesh();
 
+  private bvhVisuliser = new MeshBVHHelper(this.castableCollider, 10);
   private chunks = new Map<string, Chunk>();
+
+  private chunkKeysVisible = new Set<string>();
+  private chunkKeysCollidable = new Set<string>();
 
   private unsubPlayerStore: () => void;
 
@@ -48,6 +52,7 @@ export class ChunkCoordinator extends Object3D {
         ) {
           // console.log(chunkCoord, previousChunkCoord);
           this.createChunksInRange(chunkCoord);
+          this.updateVisibleChunks(chunkCoord);
         }
       }
     );
@@ -57,9 +62,8 @@ export class ChunkCoordinator extends Object3D {
     this.createFirstChunk(chunkCoord);
     this.createChunksInRange(chunkCoord);
 
-    this.add(this.castableChunkMeshs);
-    const visualizer = new MeshBVHHelper(this.castableCollider, 10);
-    this.add(visualizer);
+    // this.add(this.castableChunkMeshs);
+    this.add(this.bvhVisuliser);
   }
 
   private async createFirstChunk(chunkCoord: ChunkCoord) {
@@ -71,6 +75,8 @@ export class ChunkCoordinator extends Object3D {
     } else {
       throw new Error("First chunk didnt load, panic!");
     }
+
+    this.updateVisibleChunks(chunkCoord);
   }
 
   private async createChunksInRange(baseChunkCoord: ChunkCoord) {
@@ -98,6 +104,8 @@ export class ChunkCoordinator extends Object3D {
         if (chunkData) this.addChunk(chunkData);
       }
     }
+
+    this.updateVisibleChunks(baseChunkCoord);
   }
 
   private async getOrLoadChunk(
@@ -146,14 +154,62 @@ export class ChunkCoordinator extends Object3D {
 
     const chunk = new Chunk(chunkData);
     this.chunks.set(chunkKey, chunk);
-
-    this.castableChunkMeshs.attach(chunk.mesh);
-    this.attach(chunk.meshTemp);
-
-    this.updateCollider();
   }
 
-  async updateCollider() {
+  async updateVisibleChunks(baseCoord: ChunkCoord) {
+    let colliderChanged = false;
+
+    const _vec = new Vector3();
+    for (const [key, chunk] of this.chunks) {
+      const chunkCoord = chunk.chunkCoord;
+      _vec.set(
+        chunkCoord.x - baseCoord.x,
+        chunkCoord.y - baseCoord.y,
+        chunkCoord.z - baseCoord.z
+      );
+      const d = _vec.length();
+      if (d < 2) {
+        // within collider range
+        if (!this.chunkKeysCollidable.has(key)) {
+          // add to collider
+          this.chunkKeysCollidable.add(key);
+          this.castableChunkMeshs.attach(chunk.mesh);
+          chunk.copyTemp();
+          this.attach(chunk.meshTemp);
+          colliderChanged = true;
+        }
+
+        if (this.chunkKeysVisible.has(key)) {
+          // remove from visible
+          this.chunkKeysVisible.delete(key);
+          this.remove(chunk.mesh);
+        }
+
+        // console.log(key, 'c')
+      } else {
+        // out of collider range
+        if (this.chunkKeysCollidable.has(key)) {
+          // remove from collider
+          this.chunkKeysCollidable.delete(key);
+          this.castableChunkMeshs.remove(chunk.mesh);
+          this.remove(chunk.meshTemp);
+          colliderChanged = true;
+        }
+
+        if (!this.chunkKeysVisible.has(key)) {
+          // add to visible
+          this.chunkKeysVisible.add(key);
+          this.attach(chunk.mesh);
+        }
+      }
+    }
+
+    if (colliderChanged) this.updateCollider();
+  }
+
+  updateCollider() {
+    console.log("collider update");
+
     const staticGenerator = new StaticGeometryGenerator(
       this.castableChunkMeshs
     );
@@ -169,6 +225,11 @@ export class ChunkCoordinator extends Object3D {
     mat.opacity = 0.5;
     mat.transparent = true;
     mat.needsUpdate = true;
+
+    this.remove(this.bvhVisuliser);
+    this.bvhVisuliser = new MeshBVHHelper(this.castableCollider, 10);
+    this.add(this.bvhVisuliser);
+    // this.bvhVisuliser.update()
   }
 
   public drawToChunks(
@@ -179,7 +240,7 @@ export class ChunkCoordinator extends Object3D {
     isPlacing = false
   ) {
     const _bbox = bbox.clone();
-    _bbox.min.divideScalar(TERRAIN_SIZE).floor();
+    _bbox.min.subScalar(1).divideScalar(TERRAIN_SIZE).floor();
     _bbox.max.divideScalar(TERRAIN_SIZE).floor();
 
     const chunkKeys = new Set<string>();
@@ -210,18 +271,30 @@ export class ChunkCoordinator extends Object3D {
     );
 
     // console.log(chunkKeys.size, chunkKeys)
-
+    let meshChanged = false;
     for (const chunkKey of chunkKeys) {
       const chunk = this.chunks.get(chunkKey);
-      if (chunk)
-        chunk.draw(
-          center,
+      if (chunk) {
+        const _change = chunk.draw(
+          center.clone(),
           inverseRotation,
           bbox.clone(),
           buildConfig,
           isPlacing
         );
+
+        meshChanged = meshChanged || (_change && isPlacing);
+      }
     }
+
+    for(const chunkKey of this.chunkKeysCollidable){
+      if(!chunkKeys.has(chunkKey)) {
+        const chunk = this.chunks.get(chunkKey);
+        chunk?.copyTemp();
+      }
+    }
+
+    if (meshChanged) this.updateCollider();
   }
 
   dispose() {

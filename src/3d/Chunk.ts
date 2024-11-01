@@ -10,7 +10,7 @@ import {
   Vector2,
   Vector3,
 } from "three";
-import { ChunkData } from "../utils/interfaces";
+import { ChunkCoord, ChunkData } from "../utils/interfaces";
 import { ChunkMesh } from "./ChunkMesh";
 import {
   base64ToUint8Array,
@@ -24,9 +24,11 @@ import { generateMeshWorker } from "../workers/MeshWorkerMultimat";
 import { TERRAIN_SCALE, TERRAIN_SIZE } from "../utils/constants";
 import { BuildPreset } from "../builder/BuildPresets";
 import { VEC2_0, VEC3_0 } from "../utils/vector_utils";
+import { MeshBVHHelper } from "three-mesh-bvh";
 
 export class Chunk extends Object3D {
-  private chunkKey: string;
+  public chunkKey: string;
+  public chunkCoord: ChunkCoord;
 
   private grid = new Float32Array();
   private gridTemp = new Float32Array();
@@ -34,10 +36,12 @@ export class Chunk extends Object3D {
   public meshTemp = new ChunkMesh();
 
   private _gridCell: Vector3 = new Vector3();
+  private isDefaultMeshTemp = false;
 
   constructor(private chunkData: ChunkData) {
     super();
     this.chunkKey = chunkData.id;
+    this.chunkCoord = { x: chunkData.x, y: chunkData.y, z: chunkData.z };
 
     this.mesh = new ChunkMesh();
     this.grid = this.readChunkGridData(chunkData);
@@ -48,9 +52,9 @@ export class Chunk extends Object3D {
     this.scale.set(TERRAIN_SCALE, TERRAIN_SCALE, TERRAIN_SCALE);
 
     this.position.set(
-      chunkData.x * TERRAIN_SIZE,
-      chunkData.y * TERRAIN_SIZE,
-      chunkData.z * TERRAIN_SIZE
+      this.chunkCoord.x * TERRAIN_SIZE,
+      this.chunkCoord.y * TERRAIN_SIZE,
+      this.chunkCoord.z * TERRAIN_SIZE
     );
 
     this.updateMatrix();
@@ -67,6 +71,15 @@ export class Chunk extends Object3D {
     _mesh.generateMeshData(_grid);
     _mesh.updateMesh();
     // console.log(_mesh);
+
+    if (!isPlacing) this.isDefaultMeshTemp = false;
+  }
+
+  copyTemp() {
+    if (!this.isDefaultMeshTemp) {
+      this.meshTemp.geometry.copy(this.mesh.geometry);
+      this.isDefaultMeshTemp = true;
+    }
   }
 
   private p: Vector3 = new Vector3();
@@ -76,7 +89,7 @@ export class Chunk extends Object3D {
     bbox: Box3,
     buildConfig: BuildPreset,
     isPlacing = false
-  ) {
+  ): boolean {
     worldToChunkPosition(center, this.position);
     worldToChunkPosition(bbox.min, this.position);
     worldToChunkPosition(bbox.max, this.position);
@@ -88,7 +101,7 @@ export class Chunk extends Object3D {
       cube: this.drawCube,
       cylinder: this.drawCylinder,
     }[buildConfig.shape];
-    if (!drawFunc) return;
+    if (!drawFunc) return false;
 
     const weight = buildConfig.constructive ? 1 : -1;
     let isChanged = false;
@@ -96,8 +109,9 @@ export class Chunk extends Object3D {
     if (!isPlacing) {
       this.gridTemp = new Float32Array(this.grid);
     }
-    // console.log(bbox, center)
-
+    // console.log(this.chunkKey)
+    let c = 0;
+    let e = 0;
     for (let y = bbox.min.y; y <= bbox.max.y; y++) {
       for (let z = bbox.min.z; z <= bbox.max.z; z++) {
         for (let x = bbox.min.x; x <= bbox.max.x; x++) {
@@ -117,13 +131,22 @@ export class Chunk extends Object3D {
             isChanged = isChanged || _change;
             // if (val * p >= -0.5) {
             //   this.saveGridPosition(gridPosition, buildConfiguration.material);
+            // console.log(this.chunkKey, this._gridCell)
             // }
+            // c = !_change ? c+1 : c;
+            // e = _change ? e+1 : e;
+            // console.log(x,this.p.x)
+          } else {
+           
+            // console.log(this.chunkKey, this._gridCell)
           }
         }
       }
     }
-    // console.log(this.chunkKey, isPlacing, isChanged);
+    // console.log(this.chunkKey, isPlacing, isChanged, c, e);
     if (isChanged) this.renderMesh(isPlacing);
+
+    return isChanged;
   }
 
   drawSphere(p: Vector3, buildConfig: BuildPreset) {
@@ -160,9 +183,8 @@ export class Chunk extends Object3D {
     const _grid = isPlacing ? this.grid : this.gridTemp;
     if (!_grid) return false;
     const gridIndex = gridCellToIndex(p);
-
     v = clamp(v, -0.5, 0.5);
-
+    console.log(this.chunkKey, constructive,  v)
     if (constructive && v > _grid[gridIndex]) {
       _grid[gridIndex] = v;
       return true;
