@@ -276,7 +276,7 @@ export class ChunkCoordinator extends Object3D {
           this.attach(chunk.mesh);
           const v = new Vector3()
           chunk.mesh.getWorldPosition(v)
-          console.log(chunkCoord, v)
+          // console.log(chunkCoord, v)
         }
       }
     }

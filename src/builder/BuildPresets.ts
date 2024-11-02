@@ -13,7 +13,7 @@ export interface BuildPreset {
   constructive: boolean;
   snap: boolean,
   size: Vector3;
-  material: string;
+  material: number;
   align: string;
   rotation: Euler;
 }
@@ -26,7 +26,7 @@ export const BuildPresets: BuildPreset[] = [
     constructive: false,
     snap: false,
     size: new Vector3(),
-    material: 'brick',
+    material: 0,
     align: "base",
     rotation: new Euler(0,0,0, 'XYZ'),
   },{
@@ -36,7 +36,7 @@ export const BuildPresets: BuildPreset[] = [
     constructive: true,
     snap: true,
     size: new Vector3(3, 3, 1),
-    material: 'brick',
+    material: 0,
     align: "base",
     rotation: new Euler(0,0,0, 'XYZ'),
   },
@@ -47,7 +47,7 @@ export const BuildPresets: BuildPreset[] = [
     constructive: false,
     snap: false,
     size: new Vector3(1.5, 0, 0),
-    material: 'grass',
+    material: 1,
     align: "center",
     rotation: new Euler(0,0,0, 'XYZ'),
   },
@@ -58,7 +58,7 @@ export const BuildPresets: BuildPreset[] = [
     constructive: true,
     snap: false,
     size: new Vector3(1.5, 0, 0),
-    material: 'grass',
+    material: 1,
     align: "center",
     rotation: new Euler(0,0,0, 'XYZ'),
   },
@@ -69,7 +69,7 @@ export const BuildPresets: BuildPreset[] = [
     constructive: true,
     snap: true,
     size: new Vector3(3, 3, 1),
-    material: 'brick',
+    material: 0,
     align: "base",
     rotation: new Euler(Math.PI / 3,0,0, 'XYZ'),
   },
@@ -80,7 +80,7 @@ export const BuildPresets: BuildPreset[] = [
     constructive: true,
     snap: true,
     size: new Vector3(3, 3, 1),
-    material: 'brick',
+    material: 0,
     align: "base",
     rotation: new Euler(Math.PI/2,0,0, 'XYZ'),
   },
@@ -91,7 +91,7 @@ export const BuildPresets: BuildPreset[] = [
     snapShape: 'line',
     constructive: true,
     size: new Vector3(1, 3, 1),
-    material: 'brick',
+    material: 0,
     align: "base",
     rotation: new Euler(0,0,0, 'XYZ'),
   },

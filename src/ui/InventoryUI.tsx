@@ -24,9 +24,9 @@ export const InventoryUI: React.FC = () => {
     setBuildPreset(shapeIndex);
   };
 
-  const handleClickMaterial = (e, material) => {
+  const handleClickMaterial = (e, materialIndex) => {
     e.stopPropagation();
-    setBuildMaterial(material)
+    setBuildMaterial(materialIndex)
   };
 
   useEffect(() => {
@@ -58,11 +58,11 @@ export const InventoryUI: React.FC = () => {
             <div className="inventory-panel">
               <div className="inventory-panel-title">Material</div>
               <div className="inventory-panel-contents">
-                {pallet.map((material) => (
+                {pallet.map((material, index) => (
                   <div
-                    className={"inventory-panel-item " + (buildMaterial === material ? 'active' : '')}
+                    className={"inventory-panel-item " + (buildMaterial === index ? 'active' : '')}
                     key={material}
-                    onMouseDown={(e) => handleClickMaterial(e, material)}
+                    onMouseDown={(e) => handleClickMaterial(e, index)}
                   >
                     <p>{material}</p>
                   </div>

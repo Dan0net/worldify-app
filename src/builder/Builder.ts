@@ -36,6 +36,7 @@ import BuildSnapMarker from "./BuildSnapMarker";
 import { string } from "three/webgpu";
 import { MenuStatus, useGameStore } from "../store/GameStore";
 import { FORWARD, LEFT, UP, VEC2_0 } from "../utils/vector_utils";
+import { MatterialPallet } from "../material/MaterialPallet";
 
 export class Builder extends Object3D {
   private buildMarker = new BuildMarker();
@@ -58,6 +59,7 @@ export class Builder extends Object3D {
   private buildPresetConfig =
     BuildPresets[usePlayerStore.getState().buildPreset];
   private setBuildPreset = usePlayerStore.getState().setBuildPreset;
+  private setBuildMaterial = usePlayerStore.getState().setBuildMaterial;
 
   private raycaster = new Raycaster();
   private intersect: Intersection | null = null;
@@ -99,13 +101,13 @@ export class Builder extends Object3D {
     this.unsubPlayerStore = usePlayerStore.subscribe(
       (state) => [state.buildPreset, state.buildMaterial],
       (state, previousState) => {
-        if (state[0] !== previousState[0]) {
-          this.updateBuildPreset(state[0] as number);
+        if (state[0] !== previousState[0] || state[1] !== previousState[1]) {
+          this.updateBuildPreset();
         }
       }
     );
 
-    this.updateBuildPreset(0);
+    this.updateBuildPreset();
 
     // this.inputController.on('mousemove', this.mouseMove);
   }
@@ -150,6 +152,12 @@ export class Builder extends Object3D {
         case "prev_rotate":
           this.rotateBuildConfig(-1);
           break;
+        case "next_material":
+          this.nextPrevBuildMaterial(1);
+          break;
+        case "prev_Material":
+          this.nextPrevBuildMaterial(-1);
+          break;
         case "place":
           this.placeBuild();
           break;
@@ -170,22 +178,34 @@ export class Builder extends Object3D {
   }
 
   nextPrevBuildPreset(inc: number) {
-    this.updateBuildPreset(
+    const buildIndex =
       (usePlayerStore.getState().buildPreset + inc + BuildPresets.length) %
-        BuildPresets.length
-    );
+      BuildPresets.length;
+    this.setBuildPreset(buildIndex);
   }
 
-  updateBuildPreset(index: number) {
-    this.setBuildPreset(index);
+  nextPrevBuildMaterial(inc: number) {
+    const materialId =
+      (usePlayerStore.getState().buildMaterial +
+        inc +
+        MatterialPallet.pallet.materials.length) %
+      MatterialPallet.pallet.materials.length;
+    this.setBuildMaterial(materialId);
+  }
 
-    this.buildPresetConfig = BuildPresets[index];
+  updateBuildPreset() {
+    const buildIndex = usePlayerStore.getState().buildPreset
+    const materialIndex = usePlayerStore.getState().buildMaterial
+
+    this.buildPresetConfig = BuildPresets[buildIndex];
+    this.buildPresetConfig.material = materialIndex;
 
     if (this.buildPresetConfig.name === "none") {
       this.buildCollider.visible = false;
       this.buildShape.visible = false;
       this.buildSnapMarker.visible = false;
       this.buildMarker.visible = false;
+      this.voxelBoxHelper.visible = false;
       this.draw(false);
       return;
     }
@@ -193,6 +213,7 @@ export class Builder extends Object3D {
     this.buildCollider.visible = this.debug;
     this.buildShape.visible = this.debug;
     this.buildSnapMarker.visible = this.debug;
+    this.voxelBoxHelper.visible = this.debug;
     this.buildMarker.visible = true;
 
     this.buildCollider.setShape(
@@ -250,7 +271,7 @@ export class Builder extends Object3D {
   }
 
   update(delta: number) {
-    if (this.buildPresetConfig.name !== 'none') this.draw(false);
+    if (this.buildPresetConfig.name !== "none") this.draw(false);
   }
 
   draw(isPlacing = false) {

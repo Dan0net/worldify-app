@@ -29,6 +29,7 @@ import { BatchedMesh } from "three/src/Three.js";
 import Stats from "three/examples/jsm/libs/stats.module.js";
 import { Lights } from "./Lights";
 import { InputController } from "../input/InputController";
+import { MatterialPallet } from "../material/MaterialPallet";
 
 export class Worldify {
   private canvas: HTMLCanvasElement;
@@ -94,6 +95,9 @@ export class Worldify {
     ///
 
     this.inputController = new InputController(this.canvas);
+    // MatterialPallet.getPallet(); //warm up
+
+    ///
 
     this.lights = new Lights(this.scene);
     this.scene.add(this.lights);

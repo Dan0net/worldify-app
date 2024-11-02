@@ -2,7 +2,7 @@
   
   export class MatterialPallet {
     public static pallet;
-
+    
     constructor() {
     }
  

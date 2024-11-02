@@ -26,32 +26,26 @@ import {
 import { TERRAIN_SCALE, TERRAIN_SIZE } from "../utils/constants";
 import { BuildPreset } from "../builder/BuildPresets";
 import { VEC2_0, VEC3_0 } from "../utils/vector_utils";
+import { MatterialPallet } from "../material/MaterialPallet";
 
 export class Chunk extends Object3D {
   public chunkKey: string;
   public chunkCoord: ChunkCoord;
 
-  private grid = new Float32Array();
-  private gridTemp = new Float32Array();
   public mesh = new ChunkMesh();
   public meshTemp = new ChunkMesh();
 
   public meshGenerated = false;
 
-  private materialGrid = new Float32Array();
-
   private _gridCell: Vector3 = new Vector3();
   private isDefaultMeshTemp = false;
-
-  private materials = [];
 
   constructor(private chunkData: ChunkData) {
     super();
     this.chunkKey = chunkData.id;
     this.chunkCoord = { x: chunkData.x, y: chunkData.y, z: chunkData.z };
 
-    this.grid = this.readGridFromString(chunkData);
-    this.materialGrid = new Float32Array(this.grid).fill(1);
+    this.mesh.readGridFromString(chunkData);
 
     this.add(this.mesh);
     this.add(this.meshTemp);
@@ -67,20 +61,10 @@ export class Chunk extends Object3D {
     this.updateMatrix();
   }
 
-  readGridFromString(chunkData: ChunkData): Float32Array {
-    const gridUint8 = base64ToUint8Array(chunkData.grid);
-    return decompressUint8ToFloat32(gridUint8);
-  }
-
-  gridToString(): string {
-    const gridUint8 = compressFloat32ArrayToUint8(this.grid);
-    return uint8ArrayToBase64(gridUint8);
-  }
-
   toChunkData(): ChunkData {
     return {
       id: this.chunkKey,
-      grid: this.gridToString(),
+      grid: this.mesh.gridToString(),
       x: this.chunkCoord.x,
       y: this.chunkCoord.y,
       z: this.chunkCoord.z,
@@ -89,10 +73,10 @@ export class Chunk extends Object3D {
 
   async renderMesh(isPlacing = true) {
     const _mesh = isPlacing ? this.mesh : this.meshTemp;
-    const _grid = isPlacing ? this.grid : this.gridTemp;
-    await _mesh.generateMeshData(_grid, this.materialGrid)
-
-    if(isPlacing) this.meshGenerated = true;
+    await _mesh.generateMeshData();
+    
+    
+    if (isPlacing) this.meshGenerated = true;
 
     if (!isPlacing) this.isDefaultMeshTemp = false;
   }
@@ -103,6 +87,15 @@ export class Chunk extends Object3D {
       this.isDefaultMeshTemp = true;
     }
   }
+
+  //           88
+  //           88
+  //           88
+  //   ,adPPYb,88  8b,dPPYba,  ,adPPYYba,  8b      db      d8
+  //  a8"    `Y88  88P'   "Y8  ""     `Y8  `8b    d88b    d8'
+  //  8b       88  88          ,adPPPPP88   `8b  d8'`8b  d8'
+  //  "8a,   ,d88  88          88,    ,88    `8bd8'  `8bd8'
+  //   `"8bbdP"Y8  88          `"8bbdP"Y8      YP      YP
 
   private p: Vector3 = new Vector3();
   public draw(
@@ -116,7 +109,7 @@ export class Chunk extends Object3D {
     worldToChunkPosition(bbox.min, this.position);
     worldToChunkPosition(bbox.max, this.position);
     bbox.min.floor();
-    bbox.max.ceil();
+    bbox.max.ceil().addScalar(1);
 
     const drawFunc = {
       sphere: this.drawSphere,
@@ -128,15 +121,18 @@ export class Chunk extends Object3D {
     let isChanged = false;
 
     if (!isPlacing) {
-      this.gridTemp = new Float32Array(this.grid);
+      this.meshTemp.copyGridFromChunkMesh(this.mesh);
 
       if (!drawFunc) {
         // if we set buildPreset to none, clear the temp grid
-        this.renderMesh(isPlacing);
+        // this.renderMesh(isPlacing);
+        this.meshTemp.geometry.copy(this.mesh.geometry);
         return true;
       }
     }
     if (!drawFunc) return false;
+
+    const _mesh = isPlacing ? this.mesh : this.meshTemp;
 
     for (let y = bbox.min.y; y <= bbox.max.y; y++) {
       for (let z = bbox.min.z; z <= bbox.max.z; z++) {
@@ -148,21 +144,24 @@ export class Chunk extends Object3D {
 
             const d = drawFunc(this.p, buildConfig) * weight;
 
-            const _change = this.addValueToGrid(
-              this._gridCell,
+            const gridIndex = gridCellToIndex(this._gridCell);
+
+            const _change = _mesh.addValueToGrid(
+              gridIndex,
               d,
-              buildConfig.constructive,
-              isPlacing
+              buildConfig
             );
+
             isChanged = isChanged || _change;
-            if (_change && d > -0.5) {
-              this.updateMaterialGrid(this._gridCell, buildConfig.material);
-            }
+
+            // if (_change && d > -0.5) {
+            //   _mesh.updateMaterialGrid(gridIndex, buildConfig);
+            // }
           }
         }
       }
     }
-    // console.log(this.chunkKey, isPlacing, isChanged, c, e);
+    // console.log(this.chunkKey, isPlacing, isChanged);
     if (isChanged) this.renderMesh(isPlacing);
 
     return isChanged;
@@ -191,38 +190,5 @@ export class Chunk extends Object3D {
     );
     const a = Math.min(Math.max(d.x, d.y), 0.0) + d.max(VEC2_0).length();
     return -a;
-  }
-
-  addValueToGrid(
-    p: Vector3,
-    v: number,
-    constructive: boolean,
-    isPlacing: boolean
-  ): boolean {
-    const _grid = isPlacing ? this.grid : this.gridTemp;
-    if (!_grid) return false;
-
-    const gridIndex = gridCellToIndex(p);
-
-    v = clamp(v, -0.5, 0.5);
-
-    if (constructive && v > _grid[gridIndex]) {
-      _grid[gridIndex] = v;
-      return true;
-    }
-
-    if (!constructive && v < _grid[gridIndex]) {
-      _grid[gridIndex] = v;
-      return true;
-    }
-
-    return false;
-  }
-
-  updateMaterialGrid(p: Vector3, material: string) {
-    const gridIndex = gridCellToIndex(p);
-    const materialIndex = 2;
-
-    this.materialGrid[gridIndex] = materialIndex;
   }
 }
