@@ -54,7 +54,9 @@ export const useSettingStore = create<SettingStore>()(
         snap_object: 'KeyT',
         snap_grid: 'KeyR',
         place: 'MouseLeft',
-        inventory: 'MouseRight'
+        inventory: 'MouseRight',
+        inventory2: 'Tab',
+        debug: 'Slash',
       }
     }),
     {

@@ -14,7 +14,7 @@ export default class BuildMarker extends Object3D {
 
     const points = [
         new Vector3(0, 0, 0),
-        new Vector3(0, 0, 4)
+        new Vector3(0, 0, 3)
     ];
     const lineGeometry = new BufferGeometry().setFromPoints(points);
 

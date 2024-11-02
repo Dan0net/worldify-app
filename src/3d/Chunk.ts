@@ -119,14 +119,20 @@ export class Chunk extends Object3D {
       cube: this.drawCube,
       cylinder: this.drawCylinder,
     }[buildConfig.shape];
-    if (!drawFunc) return false;
 
     const weight = buildConfig.constructive ? 1 : -1;
     let isChanged = false;
 
     if (!isPlacing) {
       this.gridTemp = new Float32Array(this.grid);
+
+      if (!drawFunc) {
+        // if we set buildPreset to none, clear the temp grid
+        this.renderMesh(isPlacing);
+        return true;
+      }
     }
+    if (!drawFunc) return false;
 
     for (let y = bbox.min.y; y <= bbox.max.y; y++) {
       for (let z = bbox.min.z; z <= bbox.max.z; z++) {

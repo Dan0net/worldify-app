@@ -24,9 +24,7 @@ export class InputController {
       (state) => state.menuStatus,
       (menuStatus, previousMenuStatus) => {
         if (menuStatus !== previousMenuStatus) {
-          // menuStatus === MenuStatus.Playing
-          //   ? this.enableControls()
-          //   : this.disableControls();
+          if (menuStatus !== MenuStatus.Home) this.enableControls();
         }
         this._menuStatus = menuStatus;
       }
@@ -39,7 +37,7 @@ export class InputController {
     //   }
     // );
 
-    this.enableControls();
+    // this.enableControls();
 
     window.oncontextmenu = () => false;
 
@@ -120,7 +118,7 @@ export class InputController {
   }
 
   private onKeyDown = (event: KeyboardEvent) => {
-    // event.preventDefault();
+    event.preventDefault();
 
     const key_func = Object.keys(this._keyHoldMaps).find(
       (key) => this._keyHoldMaps[key] === event.code
@@ -141,7 +139,7 @@ export class InputController {
   };
 
   private onKeyUp = (event: KeyboardEvent) => {
-    // event.preventDefault();
+    event.preventDefault();
 
     const key_func = Object.keys(this._keyHoldMaps).find(
       (key) => this._keyHoldMaps[key] === event.code
@@ -156,8 +154,8 @@ export class InputController {
   };
 
   onMouseDown = (event: MouseEvent) => {
-    // event.preventDefault();
-    console.log(event)
+    event.preventDefault();
+    // console.log(event)
     let code;
     switch (event.buttons) {
       case 1:
@@ -191,7 +189,7 @@ export class InputController {
 
   handleInput = (event) => {
     console.log(event)
-    if (event.key_func_name === "inventory") {
+    if (event.key_func_name === "inventory" || event.key_func_name === "inventory2") {
       console.log(event)
       const menuStatus =
         this._menuStatus === MenuStatus.Playing

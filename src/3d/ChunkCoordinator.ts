@@ -23,6 +23,7 @@ import { TERRAIN_SIZE } from "../utils/constants";
 import { chunkCoordsToKey } from "../utils/functions";
 import { ChunkCoord, ChunkData } from "../utils/interfaces";
 import { Chunk } from "./Chunk";
+import { InputController } from "../input/InputController";
 
 export class ChunkCoordinator extends Object3D {
   private pendingRequests = new Map<string, Promise<ChunkData>>();
@@ -37,10 +38,10 @@ export class ChunkCoordinator extends Object3D {
   private chunkKeysCollidable = new Set<string>();
 
   private chunkKeysToPost = new Set<string>();
-
+  private debug = false;
   private unsubPlayerStore: () => void;
 
-  constructor() {
+  constructor(private inputController: InputController) {
     super();
 
     this.unsubPlayerStore = usePlayerStore.subscribe(
@@ -63,9 +64,25 @@ export class ChunkCoordinator extends Object3D {
     this.createFirstChunk(chunkCoord);
     this.createChunksInRange(chunkCoord);
 
-    // this.add(this.castableChunkMeshs);
     this.add(this.bvhVisuliser);
+
+    this.inputController.on("input", this.handleInput);
   }
+
+  handleInput = (event) => {
+    switch (event.key_func_name) {
+      case "debug":
+        this.toggleDebug();
+        break;
+    }
+  };
+
+  toggleDebug() {
+    this.debug = !this.debug;
+
+    this.bvhVisuliser.visible = this.debug;
+  }
+
 
   private async createFirstChunk(chunkCoord: ChunkCoord) {
     const chunkData = await this.getOrLoadChunk(chunkCoord);
@@ -87,7 +104,7 @@ export class ChunkCoordinator extends Object3D {
 
     for (let x = -viewDistance; x <= viewDistance; x++) {
       for (let z = -viewDistance; z <= viewDistance; z++) {
-        for (let y = -viewDistance; y <= viewDistance; y++) {
+        for (let y = -2; y <= 2; y++) {
           chunksToLoad.push({
             x: baseChunkCoord.x + x,
             y: baseChunkCoord.y + y,
@@ -232,7 +249,7 @@ export class ChunkCoordinator extends Object3D {
     this.remove(this.bvhVisuliser);
     this.bvhVisuliser = new MeshBVHHelper(this.castableCollider, 10);
     this.add(this.bvhVisuliser);
-    // this.bvhVisuliser.update()
+    this.bvhVisuliser.visible = this.debug;
   }
 
   public drawToChunks(

@@ -8,8 +8,10 @@ import { ChunkCoord } from '../utils/interfaces';
 type PlayerStore = {
   chunkCoord: ChunkCoord;
   buildPreset: number;
+  buildMaterial: string;
   setPlayerChunkCoord: (chunkCoord: ChunkCoord) => void;
   setBuildPreset: (buildPreset: number) => void;
+  setBuildMaterial: (buildMaterial: string) => void;
 };
 
 export const usePlayerStore = create<PlayerStore>()(
@@ -18,8 +20,10 @@ export const usePlayerStore = create<PlayerStore>()(
     (set) => ({
       chunkCoord: {x: 0, y: 0, z: 0},
       buildPreset: 0,
+      buildMaterial: 'bricks',
       setPlayerChunkCoord: (chunkCoord) => set({ chunkCoord }),
       setBuildPreset: (buildPreset) => set({ buildPreset }),
+      setBuildMaterial: (buildMaterial) => set({ buildMaterial }),
     }),
     // {
     //   name: 'player-store',

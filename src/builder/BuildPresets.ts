@@ -20,6 +20,16 @@ export interface BuildPreset {
 
 export const BuildPresets: BuildPreset[] = [
   {
+    name: "none",
+    shape: "none",
+    snapShape: 'none',
+    constructive: false,
+    snap: false,
+    size: new Vector3(),
+    material: 'brick',
+    align: "base",
+    rotation: new Euler(0,0,0, 'XYZ'),
+  },{
     name: "wall",
     shape: "cube",
     snapShape: 'plane',
@@ -36,7 +46,7 @@ export const BuildPresets: BuildPreset[] = [
     snapShape: 'point',
     constructive: false,
     snap: false,
-    size: new Vector3(1, 0, 0),
+    size: new Vector3(1.5, 0, 0),
     material: 'grass',
     align: "center",
     rotation: new Euler(0,0,0, 'XYZ'),
@@ -47,7 +57,7 @@ export const BuildPresets: BuildPreset[] = [
     snapShape: 'point',
     constructive: true,
     snap: false,
-    size: new Vector3(1, 0, 0),
+    size: new Vector3(1.5, 0, 0),
     material: 'grass',
     align: "center",
     rotation: new Euler(0,0,0, 'XYZ'),

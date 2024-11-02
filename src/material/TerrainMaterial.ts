@@ -17,6 +17,7 @@ import {
   TextureLoader,
   UnsignedByteType,
 } from "three";
+import { MatterialPallet } from "./MaterialPallet";
 const apiUrl = import.meta.env.VITE_API_URL;
 
 export class TerrainMaterial extends MeshStandardMaterial {
@@ -559,10 +560,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
     const metadata = {};
 
     // Load material indices
-    const materialIndicesResponse = await fetch(
-      `materials/materialDefinitions.json`
-    );
-    const materialIndices = await materialIndicesResponse.json();
+    const materialIndices = await MatterialPallet.getPallet();
 
     // Fetch and create textures for each map type
     for (const mapType of mapTypes) {

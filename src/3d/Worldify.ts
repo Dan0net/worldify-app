@@ -30,7 +30,7 @@ import Stats from "three/examples/jsm/libs/stats.module.js";
 import { Lights } from "./Lights";
 import { InputController } from "../input/InputController";
 
-export class Game {
+export class Worldify {
   private canvas: HTMLCanvasElement;
 
   private clock: Clock;
@@ -98,7 +98,7 @@ export class Game {
     this.lights = new Lights(this.scene);
     this.scene.add(this.lights);
 
-    this.chunkCoordinator = new ChunkCoordinator();
+    this.chunkCoordinator = new ChunkCoordinator(this.inputController);
     this.scene.add(this.chunkCoordinator);
 
     this.player = new Player(

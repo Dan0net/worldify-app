@@ -57,6 +57,7 @@ export class Builder extends Object3D {
 
   private buildPresetConfig =
     BuildPresets[usePlayerStore.getState().buildPreset];
+  private setBuildPreset = usePlayerStore.getState().setBuildPreset;
 
   private raycaster = new Raycaster();
   private intersect: Intersection | null = null;
@@ -73,7 +74,10 @@ export class Builder extends Object3D {
 
   private voxelBoxHelper = new Box3Helper(this._bboxShape, 0xffffff);
   private unsubGameStore;
+  private unsubPlayerStore;
   private _menuStatus = useGameStore.getState().menuStatus;
+
+  private debug = false;
 
   constructor(
     private inputController: InputController,
@@ -86,9 +90,18 @@ export class Builder extends Object3D {
       (state) => state.menuStatus,
       (menuStatus, previousMenuStatus) => {
         if (menuStatus !== previousMenuStatus) {
-          menuStatus === MenuStatus.Playing ? this.enable() : this.disable();
+          menuStatus !== MenuStatus.Home ? this.enable() : this.disable();
         }
         this._menuStatus = menuStatus;
+      }
+    );
+
+    this.unsubPlayerStore = usePlayerStore.subscribe(
+      (state) => [state.buildPreset, state.buildMaterial],
+      (state, previousState) => {
+        if (state[0] !== previousState[0]) {
+          this.updateBuildPreset(state[0] as number);
+        }
       }
     );
 
@@ -104,6 +117,7 @@ export class Builder extends Object3D {
     this.add(this.buildSnapMarker);
 
     this.add(this.voxelBoxHelper);
+    this.voxelBoxHelper.visible = this.debug;
 
     this.inputController.on("input", this.handleInput);
   }
@@ -125,10 +139,10 @@ export class Builder extends Object3D {
     if (this._menuStatus === MenuStatus.Playing) {
       switch (event.key_func_name) {
         case "next_item":
-          this.updateBuildPreset(1);
+          this.nextPrevBuildPreset(1);
           break;
         case "prev_item":
-          this.updateBuildPreset(-1);
+          this.nextPrevBuildPreset(-1);
           break;
         case "next_rotate":
           this.rotateBuildConfig(1);
@@ -139,18 +153,47 @@ export class Builder extends Object3D {
         case "place":
           this.placeBuild();
           break;
+        case "debug":
+          this.toggleDebug();
+          break;
       }
     }
   };
 
-  updateBuildPreset(inc: number) {
-    const buildPreset =
-      (usePlayerStore.getState().buildPreset + inc + BuildPresets.length) %
-      BuildPresets.length;
-    // console.log(buildPresete)
-    usePlayerStore.setState({ buildPreset });
+  toggleDebug() {
+    this.debug = !this.debug;
 
-    this.buildPresetConfig = BuildPresets[buildPreset];
+    this.voxelBoxHelper.visible = this.debug;
+    this.buildShape.visible = this.debug;
+    this.buildCollider.visible = this.debug;
+    this.buildSnapMarker.visible = this.debug;
+  }
+
+  nextPrevBuildPreset(inc: number) {
+    this.updateBuildPreset(
+      (usePlayerStore.getState().buildPreset + inc + BuildPresets.length) %
+        BuildPresets.length
+    );
+  }
+
+  updateBuildPreset(index: number) {
+    this.setBuildPreset(index);
+
+    this.buildPresetConfig = BuildPresets[index];
+
+    if (this.buildPresetConfig.name === "none") {
+      this.buildCollider.visible = false;
+      this.buildShape.visible = false;
+      this.buildSnapMarker.visible = false;
+      this.buildMarker.visible = false;
+      this.draw(false);
+      return;
+    }
+
+    this.buildCollider.visible = this.debug;
+    this.buildShape.visible = this.debug;
+    this.buildSnapMarker.visible = this.debug;
+    this.buildMarker.visible = true;
 
     this.buildCollider.setShape(
       this.buildPresetConfig.snapShape,
@@ -207,7 +250,7 @@ export class Builder extends Object3D {
   }
 
   update(delta: number) {
-    if (this._menuStatus === MenuStatus.Playing) this.draw(false);
+    if (this.buildPresetConfig.name !== 'none') this.draw(false);
   }
 
   draw(isPlacing = false) {

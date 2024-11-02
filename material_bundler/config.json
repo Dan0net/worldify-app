@@ -1,0 +1,47 @@
+{
+  "textureSize": 1024,
+  "materials": {
+    "rock2": {
+      "albedo": {
+        "path": "Bark014_1K-PNG_Color.png"
+      },
+      "normal": {
+        "path": "Bark014_1K-PNG_NormalGL.png"
+      },
+      "ao": {
+        "path": "Bark014_1K-PNG_AmbientOcclusion.png"
+      },
+      "roughness": {
+        "path": "Bark014_1K-PNG_Roughness.png"
+      }
+    },
+    "bricks": {
+      "albedo": {
+        "path": "Bricks094_1K-PNG_Color.png"
+      },
+      "normal": {
+        "path": "Bricks094_1K-PNG_NormalGL.png"
+      },
+      "ao": {
+        "path": "Bricks094_1K-PNG_AmbientOcclusion.png"
+      },
+      "roughness": {
+        "path": "Bricks094_1K-PNG_Roughness.png"
+      }
+    },
+    "rock": {
+      "albedo": {
+        "path": "Rock028_1K-PNG_Color.png"
+      },
+      "normal": {
+        "path": "Rock028_1K-PNG_NormalGL.png"
+      },
+      "ao": {
+        "path": "Rock028_1K-PNG_AmbientOcclusion.png"
+      },
+      "roughness": {
+        "path": "Rock028_1K-PNG_Roughness.png"
+      }
+    }
+  }
+}

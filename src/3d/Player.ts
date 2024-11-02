@@ -29,6 +29,7 @@ import { ChunkCoordinator } from "./ChunkCoordinator";
 import { RoundedBoxGeometry } from "three/examples/jsm/Addons.js";
 import { InputController } from "../input/InputController";
 import { UP } from "../utils/vector_utils";
+import { ChunkCoord } from "../utils/interfaces";
 
 export class Player extends Object3D {
   private playerIsOnGround = false;
@@ -51,6 +52,7 @@ export class Player extends Object3D {
   private _menuStatus = useGameStore.getState().menuStatus;
   private unsubGameStore;
   private setPlayerChunkCoord = usePlayerStore.getState().setPlayerChunkCoord;
+  private _chunkCoord;
 
   constructor(
     private inputController: InputController,
@@ -124,11 +126,15 @@ export class Player extends Object3D {
       this.collisionUpdate(deltaStep);
     }
 
-    this.setPlayerChunkCoord({
+    const chunkCoord = {
       x: Math.floor(this.position.x / TERRAIN_SIZE),
       y: Math.floor(this.position.y / TERRAIN_SIZE),
       z: Math.floor(this.position.z / TERRAIN_SIZE),
-    });
+    };
+    if (!this._chunkCoord || this._chunkCoord.x !== chunkCoord.x) {
+      this.setPlayerChunkCoord(chunkCoord);
+      this._chunkCoord = chunkCoord;
+    }
   }
 
   collisionUpdate(delta: number) {

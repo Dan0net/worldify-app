@@ -9,7 +9,7 @@ export const HomeUI: React.FC = () => {
   const { menuStatus } = useGameStore();
 
   const handleStart = (e) => {
-    e.stopPropagation()
+    e.stopPropagation();
     useGameStore.setState({ menuStatus: MenuStatus.Playing });
   };
 
@@ -22,43 +22,39 @@ export const HomeUI: React.FC = () => {
     <div id="home-ui">
       <div id="blur"></div>
       <div id="home-ui-container">
-        <div className="button-container">
-          {!showSettings ? (
-            <>
-              <button
-                onClick={handleStart}
-                className="button"
-                id="continue-button"
-              >
-                Continue
-              </button>
-              <button
-                onClick={handleStart}
-                className="button"
-                id="start-button"
-              >
-                Start
-              </button>
-              <button
-                onClick={() => handleShowSettings(true)}
-                className="button"
-                id="settings-button"
-              >
-                Settings
-              </button>
-              <LoginUI />
-            </>
-          ) : (
-            <>
-              <SettingUI />
-              <button
-                onClick={() => handleShowSettings(false)}
-                className="back-button button"
-              >
-                Back
-              </button>
-            </>
-          )}
+        <div>
+          {/* <p id="title">W<span>🌍</span>rldify 🤯</p> */}
+          <div className="button-container">
+            {!showSettings ? (
+              <>
+                <button
+                  onClick={handleStart}
+                  className="button"
+                  id="start-button"
+                >
+                  W<span>🌍</span>rldify 🤯
+                </button>
+                <button
+                  onClick={handleStart}
+                  className="button"
+                  id="settings-button"
+                >
+                  Settings
+                </button>
+                <LoginUI />
+              </>
+            ) : (
+              <>
+                <SettingUI />
+                <button
+                  onClick={() => handleShowSettings(false)}
+                  className="back-button button"
+                >
+                  Back
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
