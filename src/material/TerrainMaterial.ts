@@ -566,14 +566,14 @@ export class TerrainMaterial extends MeshStandardMaterial {
     for (const mapType of mapTypes) {
       const { width, height, channels, layers } = materialIndices.maps[mapType];
       const channelSize = channels.length
-      console.log(mapType, width, height, channelSize, layers)
+      // console.log(mapType, width, height, channelSize, layers)
       // Fetch binary data
       const dataResponse = await fetch(`materials/${mapType}.bin`);
       const arrayBuffer = await dataResponse.arrayBuffer();
 
       // Create the typed array from the ArrayBuffer
       let data = new Uint8Array(arrayBuffer);
-      console.log(width* height* layers*channelSize, data.length);
+      // console.log(width* height* layers*channelSize, data.length);
 
       // Determine the texture format
       let format;
@@ -585,7 +585,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
       } else if (channelSize === 1) {
         format = RedFormat;
       }
-      console.log(channelSize, format)
+      // console.log(channelSize, format)
 
       // Create the DataArrayTexture
       const texture = new DataArrayTexture(data, width, height, layers);

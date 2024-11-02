@@ -131,7 +131,12 @@ export class Player extends Object3D {
       y: Math.floor(this.position.y / TERRAIN_SIZE),
       z: Math.floor(this.position.z / TERRAIN_SIZE),
     };
-    if (!this._chunkCoord || this._chunkCoord.x !== chunkCoord.x) {
+    if (
+      !this._chunkCoord ||
+      this._chunkCoord.x !== chunkCoord.x ||
+      this._chunkCoord.y !== chunkCoord.y ||
+      this._chunkCoord.z !== chunkCoord.z
+    ) {
       this.setPlayerChunkCoord(chunkCoord);
       this._chunkCoord = chunkCoord;
     }

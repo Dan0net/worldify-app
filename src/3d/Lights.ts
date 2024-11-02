@@ -8,8 +8,8 @@ export class Lights extends Object3D {
         super();
         
         //lights
-        const skyColor = 0xB1E1FF;  // light blue
-        const groundColor = 0xB97A20;  // brownish orange
+        const skyColor = 0xffffff;  // light blue
+        const groundColor = 0xffffff;  // brownish orange
         const Hintensity = 1.0;
         const Hlight = new HemisphereLight(skyColor, groundColor, Hintensity);
         this.add(Hlight);

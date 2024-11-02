@@ -16,40 +16,49 @@ import {
 import { generateMeshWorker } from "../workers/MeshWorkerMultimat";
 import { TerrainMaterial } from "../material/TerrainMaterial";
 import { TERRAIN_GRID_SIZE_MARGIN, TERRAIN_SCALE } from "../utils/constants";
+import { getChunkWorkerPool } from "../workers/ChunkWorkerPool";
 
 export class ChunkMesh extends Mesh {
-  private meshData;
-
   constructor() {
     super(new BufferGeometry(), TerrainMaterial.getInstance());
-
+    
     this.castShadow = true;
     this.receiveShadow = true;
   }
 
-  generateMeshData(grid: Float32Array) {
-    this.meshData = generateMeshWorker(
+  async generateMeshData(grid: Float32Array, materialGrid: Float32Array) {
+    const workerPool = getChunkWorkerPool();
+
+    const req = {
       grid,
-      {
+      gridSize: {
         x: TERRAIN_GRID_SIZE_MARGIN,
         y: TERRAIN_GRID_SIZE_MARGIN,
         z: TERRAIN_GRID_SIZE_MARGIN,
       },
-      new Float32Array(grid).fill(1),
-      new Float32Array(),
-      new Float32Array(grid).fill(0)
+      adjustedIndices: materialGrid,
+      lightIncidents: new Float32Array(),
+      lightIndices: new Float32Array(grid).fill(0),
+    };
+
+    // const data = await workerPool.enqueueTask(req);
+
+    const data = generateMeshWorker(
+      req.grid,
+      req.gridSize,
+      req.adjustedIndices,
+      req.lightIncidents,
+      req.lightIndices
     );
+
+    this.updateMesh(data);
   }
 
-  updateMesh() {
-    if (!this.meshData) return;
-
+  updateMesh(data) {
     this.geometry.dispose();
-    // console.log(data)
-    // console.log('aaa')
 
     const { indices, vertices, adjusted, bary, light, lightIndices, normal } =
-      this.meshData;
+      data;
 
     // return new PlaneGeometry(32,32,32);
 

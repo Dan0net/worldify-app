@@ -22,11 +22,10 @@ import {
   uint8ArrayToBase64,
   worldToChunkPosition,
 } from "../utils/functions";
-import { generateMeshWorker } from "../workers/MeshWorkerMultimat";
+
 import { TERRAIN_SCALE, TERRAIN_SIZE } from "../utils/constants";
 import { BuildPreset } from "../builder/BuildPresets";
 import { VEC2_0, VEC3_0 } from "../utils/vector_utils";
-import { MeshBVHHelper } from "three-mesh-bvh";
 
 export class Chunk extends Object3D {
   public chunkKey: string;
@@ -37,17 +36,22 @@ export class Chunk extends Object3D {
   public mesh = new ChunkMesh();
   public meshTemp = new ChunkMesh();
 
+  public meshGenerated = false;
+
+  private materialGrid = new Float32Array();
+
   private _gridCell: Vector3 = new Vector3();
   private isDefaultMeshTemp = false;
+
+  private materials = [];
 
   constructor(private chunkData: ChunkData) {
     super();
     this.chunkKey = chunkData.id;
     this.chunkCoord = { x: chunkData.x, y: chunkData.y, z: chunkData.z };
 
-    this.mesh = new ChunkMesh();
     this.grid = this.readGridFromString(chunkData);
-    this.renderMesh(true);
+    this.materialGrid = new Float32Array(this.grid).fill(1);
 
     this.add(this.mesh);
     this.add(this.meshTemp);
@@ -79,16 +83,16 @@ export class Chunk extends Object3D {
       grid: this.gridToString(),
       x: this.chunkCoord.x,
       y: this.chunkCoord.y,
-      z: this.chunkCoord.z
-    }
+      z: this.chunkCoord.z,
+    };
   }
 
-  renderMesh(isPlacing = true) {
+  async renderMesh(isPlacing = true) {
     const _mesh = isPlacing ? this.mesh : this.meshTemp;
     const _grid = isPlacing ? this.grid : this.gridTemp;
-    _mesh.generateMeshData(_grid);
-    _mesh.updateMesh();
-    // console.log(_mesh);
+    await _mesh.generateMeshData(_grid, this.materialGrid)
+
+    if(isPlacing) this.meshGenerated = true;
 
     if (!isPlacing) this.isDefaultMeshTemp = false;
   }
@@ -142,19 +146,18 @@ export class Chunk extends Object3D {
             this.p.set(x, y, z).sub(center);
             this.p.applyQuaternion(inverseRotation);
 
-            const d = drawFunc(this.p, buildConfig);
+            const d = drawFunc(this.p, buildConfig) * weight;
 
             const _change = this.addValueToGrid(
               this._gridCell,
-              d * weight,
+              d,
               buildConfig.constructive,
               isPlacing
             );
             isChanged = isChanged || _change;
-            // if (val * p >= -0.5) {
-            //   this.saveGridPosition(gridPosition, buildConfiguration.material);
-            // console.log(this.chunkKey, this._gridCell)
-            // }
+            if (_change && d > -0.5) {
+              this.updateMaterialGrid(this._gridCell, buildConfig.material);
+            }
           }
         }
       }
@@ -198,9 +201,9 @@ export class Chunk extends Object3D {
   ): boolean {
     const _grid = isPlacing ? this.grid : this.gridTemp;
     if (!_grid) return false;
-    
+
     const gridIndex = gridCellToIndex(p);
-    
+
     v = clamp(v, -0.5, 0.5);
 
     if (constructive && v > _grid[gridIndex]) {
@@ -214,5 +217,12 @@ export class Chunk extends Object3D {
     }
 
     return false;
+  }
+
+  updateMaterialGrid(p: Vector3, material: string) {
+    const gridIndex = gridCellToIndex(p);
+    const materialIndex = 2;
+
+    this.materialGrid[gridIndex] = materialIndex;
   }
 }

@@ -6,7 +6,7 @@ import {
   MeshStandardMaterial,
   Object3D,
   Quaternion,
-  Vector3
+  Vector3,
 } from "three";
 import {
   MeshBVH,
@@ -37,9 +37,10 @@ export class ChunkCoordinator extends Object3D {
   private chunkKeysVisible = new Set<string>();
   private chunkKeysCollidable = new Set<string>();
 
-  private chunkKeysToPost = new Set<string>();
   private debug = false;
   private unsubPlayerStore: () => void;
+
+  private currentChunkCoord: ChunkCoord;
 
   constructor(private inputController: InputController) {
     super();
@@ -52,17 +53,18 @@ export class ChunkCoordinator extends Object3D {
           chunkCoord.y !== previousChunkCoord.y ||
           chunkCoord.z !== previousChunkCoord.z
         ) {
-          // console.log(chunkCoord, previousChunkCoord);
-          this.createChunksInRange(chunkCoord);
-          this.updateVisibleChunks(chunkCoord);
+          console.log(chunkCoord, previousChunkCoord);
+          this.currentChunkCoord = chunkCoord;
+          this.createChunksInRange();
+          this.updateVisibleChunks();
         }
       }
     );
 
     const { chunkCoord } = usePlayerStore.getState();
 
-    this.createFirstChunk(chunkCoord);
-    this.createChunksInRange(chunkCoord);
+    this.currentChunkCoord = chunkCoord;
+    this.createFirstChunk();
 
     this.add(this.bvhVisuliser);
 
@@ -83,49 +85,63 @@ export class ChunkCoordinator extends Object3D {
     this.bvhVisuliser.visible = this.debug;
   }
 
-
-  private async createFirstChunk(chunkCoord: ChunkCoord) {
-    const chunkData = await this.getOrLoadChunk(chunkCoord);
+                                              
+  //  88                                    88  
+  //  88                                    88  
+  //  88                                    88  
+  //  88   ,adPPYba,   ,adPPYYba,   ,adPPYb,88  
+  //  88  a8"     "8a  ""     `Y8  a8"    `Y88  
+  //  88  8b       d8  ,adPPPPP88  8b       88  
+  //  88  "8a,   ,a8"  88,    ,88  "8a,   ,d88  
+  //  88   `"YbbdP"'   `"8bbdP"Y8   `"8bbdP"Y8  
+                                            
+  private async createFirstChunk() {
+    console.log('creating first chunk', this.currentChunkCoord)
+    const chunkData = await this.getOrLoadChunk(this.currentChunkCoord);
 
     if (chunkData) {
       this.addChunk(chunkData);
-      useGameStore.getState().setHasFirstChunkLoaded(true);
+      // useGameStore.getState().setHasFirstChunkLoaded(true);
     } else {
       throw new Error("First chunk didnt load, panic!");
     }
 
-    this.updateVisibleChunks(chunkCoord);
+    console.log('created first chunk getting rest')
+    this.createChunksInRange();
+    // this.updateVisibleChunks(chunkCoord);
   }
 
-  private async createChunksInRange(baseChunkCoord: ChunkCoord) {
+  private async createChunksInRange() {
     const { viewDistance } = useSettingStore.getState();
-
+    
+    console.log('creating chunks in range', this.currentChunkCoord)
     const chunksToLoad: ChunkCoord[] = [];
 
     for (let x = -viewDistance; x <= viewDistance; x++) {
       for (let z = -viewDistance; z <= viewDistance; z++) {
         for (let y = -2; y <= 2; y++) {
           chunksToLoad.push({
-            x: baseChunkCoord.x + x,
-            y: baseChunkCoord.y + y,
-            z: baseChunkCoord.z + z,
+            x: this.currentChunkCoord.x + x,
+            y: this.currentChunkCoord.y + y,
+            z: this.currentChunkCoord.z + z,
           });
         }
       }
-
-      const chunkPromises = chunksToLoad.map((chunkCoords) =>
-        this.getOrLoadChunk(chunkCoords)
-      );
-
-      const chunkDatas = await Promise.all(chunkPromises);
-
-      // Add chunks to scene
-      for (const chunkData of chunkDatas) {
-        if (chunkData) this.addChunk(chunkData);
-      }
     }
 
-    this.updateVisibleChunks(baseChunkCoord);
+    const chunkPromises = chunksToLoad.map((chunkCoords) =>
+      this.getOrLoadChunk(chunkCoords)
+    );
+
+    const chunkDatas = await Promise.all(chunkPromises);
+
+    // Add chunks to scene
+    for (const chunkData of chunkDatas) {
+      if (chunkData) this.addChunk(chunkData);
+    }
+    
+
+    // this.updateVisibleChunks();
   }
 
   private async getOrLoadChunk(
@@ -141,12 +157,12 @@ export class ChunkCoordinator extends Object3D {
     if (chunkKey in chunkDatas) {
       const existingChunk = chunkDatas[chunkKey];
       if (existingChunk) {
-        console.log("loading chunk from storage", chunkCoord);
+        // console.log("loading chunk from storage", chunkCoord);
         return existingChunk;
       }
     }
 
-    console.log("requesting chunk from api", chunkCoord);
+    // console.log("requesting chunk from api", chunkCoord);
     const chunkPromise = this.api
       .getChunk(chunkCoord)
       .then((chunkData) => {
@@ -162,7 +178,19 @@ export class ChunkCoordinator extends Object3D {
     return await chunkPromise;
   }
 
-  private addChunk(chunkData: ChunkData) {
+                                        
+  //                      88           88  
+  //                      88           88  
+  //                      88           88  
+  // ,adPPYYba,   ,adPPYb,88   ,adPPYb,88  
+  // ""     `Y8  a8"    `Y88  a8"    `Y88  
+  // ,adPPPPP88  8b       88  8b       88  
+  // 88,    ,88  "8a,   ,d88  "8a,   ,d88  
+  // `"8bbdP"Y8   `"8bbdP"Y8   `"8bbdP"Y8  
+                                        
+                                        
+
+  private addChunk(chunkData: ChunkData, updateStorage = false) {
     const chunkKey = chunkCoordsToKey({
       x: chunkData.x,
       y: chunkData.y,
@@ -170,33 +198,59 @@ export class ChunkCoordinator extends Object3D {
     });
     // console.log('adding ', chunkKey)
 
-    useChunkStore.getState().addChunkData(chunkKey, chunkData);
+    // if (updateStorage) useChunkStore.getState().addChunkData(chunkKey, chunkData);
 
     const chunk = new Chunk(chunkData);
     this.chunks.set(chunkKey, chunk);
+
+    chunk.renderMesh(true).then(() => {
+      this.updateVisibleChunks();
+    });
   }
 
-  async updateVisibleChunks(baseCoord: ChunkCoord) {
+                                                                          
+  //                                     88                                  
+  //                                     88                ,d                
+  //                                     88                88                
+  //  88       88  8b,dPPYba,    ,adPPYb,88  ,adPPYYba,  MM88MMM  ,adPPYba,  
+  //  88       88  88P'    "8a  a8"    `Y88  ""     `Y8    88    a8P_____88  
+  //  88       88  88       d8  8b       88  ,adPPPPP88    88    8PP"""""""  
+  //  "8a,   ,a88  88b,   ,a8"  "8a,   ,d88  88,    ,88    88,   "8b,   ,aa  
+  //   `"YbbdP'Y8  88`YbbdP"'    `"8bbdP"Y8  `"8bbdP"Y8    "Y888  `"Ybbd8"'  
+  //               88                                                        
+  //               88                                                        
+
+  async updateVisibleChunks() {
+    if (!this.currentChunkCoord) return;
+
     let colliderChanged = false;
 
     const _vec = new Vector3();
     for (const [key, chunk] of this.chunks) {
+      if (!chunk.meshGenerated) continue;
+
       const chunkCoord = chunk.chunkCoord;
       _vec.set(
-        chunkCoord.x - baseCoord.x,
-        chunkCoord.y - baseCoord.y,
-        chunkCoord.z - baseCoord.z
+        chunkCoord.x - this.currentChunkCoord.x,
+        chunkCoord.y - this.currentChunkCoord.y,
+        chunkCoord.z - this.currentChunkCoord.z
       );
       const d = _vec.length();
+
+      if (d === 0) {
+        useGameStore.getState().setHasFirstChunkLoaded(true);
+      }
       if (d < 2) {
         // within collider range
         if (!this.chunkKeysCollidable.has(key)) {
-          // add to collider
+      // console.log(chunkCoord, chunk.position)
+      // add to collider
           this.chunkKeysCollidable.add(key);
           this.castableChunkMeshs.attach(chunk.mesh);
           chunk.copyTemp();
           this.attach(chunk.meshTemp);
           colliderChanged = true;
+          // console.log(chunkCoord, chunk.mesh.position)
         }
 
         if (this.chunkKeysVisible.has(key)) {
@@ -220,6 +274,9 @@ export class ChunkCoordinator extends Object3D {
           // add to visible
           this.chunkKeysVisible.add(key);
           this.attach(chunk.mesh);
+          const v = new Vector3()
+          chunk.mesh.getWorldPosition(v)
+          console.log(chunkCoord, v)
         }
       }
     }
@@ -252,6 +309,17 @@ export class ChunkCoordinator extends Object3D {
     this.bvhVisuliser.visible = this.debug;
   }
 
+                                                            
+  //           88                                              
+  //           88                                              
+  //           88                                              
+  //   ,adPPYb,88  8b,dPPYba,  ,adPPYYba,  8b      db      d8  
+  //  a8"    `Y88  88P'   "Y8  ""     `Y8  `8b    d88b    d8'  
+  //  8b       88  88          ,adPPPPP88   `8b  d8'`8b  d8'   
+  //  "8a,   ,d88  88          88,    ,88    `8bd8'  `8bd8'    
+  //   `"8bbdP"Y8  88          `"8bbdP"Y8      YP      YP      
+                                                            
+                                                            
   public drawToChunks(
     center: Vector3,
     inverseRotation: Quaternion,
