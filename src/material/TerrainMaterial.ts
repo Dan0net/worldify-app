@@ -328,7 +328,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
   public setTextures(textures) {
     this._shader.uniforms.mapArray = {
-      value: textures["albedo"]
+      value: textures["albedo"],
     };
     this._shader.uniforms.normalArray = {
       value: textures["normal"],
@@ -358,17 +358,23 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
       TerrainMaterial.instance = material;
 
-      this.loadDataArrayTextures().then(
+      this.loadDataArrayTextures("low").then(
         ({ textures, metadata, materialIndices }) => {
           material.setTextures(textures);
-          // material.needsUpdate = true;
+
+          this.loadDataArrayTextures("high").then(
+            ({ textures, metadata, materialIndices }) => {
+              material.setTextures(textures);
+              // material.needsUpdate = true;
+            }
+          );
         }
       );
     }
     return TerrainMaterial.instance;
   }
 
-  static async loadDataArrayTextures() {
+  static async loadDataArrayTextures(resolution = "low") {
     const mapTypes = ["albedo", "normal", "ao", "roughness"];
     // const mapTypes = ["albedo", "normal", "ao", "roughness", "metalness"];
 
@@ -377,7 +383,6 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
     // Load material indices
     const materialIndices = await MatterialPallet.getPallet();
-    const resolution = "low";
 
     // Fetch and create textures for each map type
     for (const mapType of mapTypes) {
@@ -387,12 +392,10 @@ export class TerrainMaterial extends MeshStandardMaterial {
       // console.log(mapType, width, height, channelSize, layers)
       // Fetch binary data
       const dataResponse = await fetch(
-        `materials/${resolution}/${mapType}.bin.gz`,
+        `materials/${resolution}/${mapType}.bin`,
         {
           headers: {
-            "Content-Type": "application/octet-stream",
-            "Content-Encoding": "gzip",
-            "Content-Disposition": `attachment; filename="${mapType}.bin"`,
+            "Content-Type": "application/octet-stream"
           },
         }
       );
@@ -400,7 +403,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
       // Create the typed array from the ArrayBuffer
       let data = new Uint8Array(arrayBuffer);
-      console.log(mapType, data.length);
+      console.log(mapType, width * height * layers * channelSize, data.length);
 
       // Determine the texture format
       let format;
@@ -412,7 +415,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
       } else if (channelSize === 1) {
         format = RedFormat;
       }
-      console.log(mapType, channelSize, format)
+      console.log(mapType, channelSize, format);
 
       // Create the DataArrayTexture
       const texture = new DataArrayTexture(data, width, height, layers);

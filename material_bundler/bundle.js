@@ -170,11 +170,11 @@ async function createDataArrayTextures(textureSize, outputPath) {
         maps[mapType]
       );
 
-      const gzippedData = zlib.gzipSync(combinedData, { level: 9 });
+      // const gzippedData = zlib.gzipSync(combinedData, { level: 9 });
 
       // Write the binary file
       const outputDir = path.join(__dirname, outputPath);
-      fs.writeFileSync(path.join(outputDir, `${mapType}.bin.gz`), gzippedData);
+      fs.writeFileSync(path.join(outputDir, `${mapType}.bin`), combinedData);
 
       // Write the metadata file
       const metadata = {
