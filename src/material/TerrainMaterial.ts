@@ -519,12 +519,12 @@ export class TerrainMaterial extends MeshStandardMaterial {
     this._shader.uniforms.normalArray = {
       value: textures["normal"],
     };
-    // this._shader.uniforms.aoArray = {
-    //   value: textures["ao"],
-    // };
-    // this._shader.uniforms.roughnessArray = {
-    //   value: textures["roughness"],
-    // };
+    this._shader.uniforms.aoArray = {
+      value: textures["ao"],
+    };
+    this._shader.uniforms.roughnessArray = {
+      value: textures["roughness"],
+    };
 
     this.needsUpdate = true;
   }

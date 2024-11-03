@@ -1,46 +1,230 @@
 {
   "textureSize": 1024,
   "materials": {
-    "rock2": {
+    "grass": {
       "albedo": {
-        "path": "Bark014_1K-PNG_Color.png"
+        "path": "grass/Grass001_Diffuse.png"
       },
       "normal": {
-        "path": "Bark014_1K-PNG_NormalGL.png"
+        "path": "grass/Grass001_Normal.png"
       },
       "ao": {
-        "path": "Bark014_1K-PNG_AmbientOcclusion.png"
+        "path": "grass/Grass001_Ambient Occlusion.png"
       },
       "roughness": {
-        "path": "Bark014_1K-PNG_Roughness.png"
-      }
-    },
-    "bricks": {
-      "albedo": {
-        "path": "Bricks094_1K-PNG_Color.png"
-      },
-      "normal": {
-        "path": "Bricks094_1K-PNG_NormalGL.png"
-      },
-      "ao": {
-        "path": "Bricks094_1K-PNG_AmbientOcclusion.png"
-      },
-      "roughness": {
-        "path": "Bricks094_1K-PNG_Roughness.png"
+        "path": "grass/Grass001_Roughness.png"
       }
     },
     "rock": {
       "albedo": {
-        "path": "Rock028_1K-PNG_Color.png"
+        "path": "rock/Rock028_1K-PNG_Color.png"
       },
       "normal": {
-        "path": "Rock028_1K-PNG_NormalGL.png"
+        "path": "rock/Rock028_1K-PNG_NormalGL.png"
       },
       "ao": {
-        "path": "Rock028_1K-PNG_AmbientOcclusion.png"
+        "path": "rock/Rock028_1K-PNG_AmbientOcclusion.png"
       },
       "roughness": {
-        "path": "Rock028_1K-PNG_Roughness.png"
+        "path": "rock/Rock028_1K-PNG_Roughness.png"
+      }
+    },
+    "wood": {
+      "albedo": {
+        "path": "wood/raw_plank_wall_diff_1k.png"
+      },
+      "normal": {
+        "path": "wood/raw_plank_wall_nor_gl_1k.png"
+      },
+      "ao": {
+        "path": "wood/raw_plank_wall_arm_1k.png",
+        "channel": "r"
+      },
+      "roughness": {
+        "path": "wood/raw_plank_wall_arm_1k.png",
+        "channel": "g"
+      }
+    },
+    "rock2": {
+      "albedo": {
+        "path": "rock2/cliff_side_diff_1k.png"
+      },
+      "normal": {
+        "path": "rock2/cliff_side_nor_gl_1k.png"
+      },
+      "ao": {
+        "path": "rock2/cliff_side_arm_1k.png",
+        "channel": "r"
+      },
+      "roughness": {
+        "path": "rock2/cliff_side_arm_1k.png",
+        "channel": "g"
+      }
+    },
+    "bark2": {
+      "albedo": {
+        "path": "bark2/TH_Old_Bark_Brown_baseColor.png"
+      },
+      "normal": {
+        "path": "bark2/TH_Old_Bark_Brown_normal.png"
+      },
+      "ao": {
+        "path": "bark2/TH_Old_Bark_Brown_roughness.png"
+      },
+      "roughness": {
+        "path": "bark2/TH_Old_Bark_Brown_roughness.png"
+      }
+    },
+    "bark3": {
+      "albedo": {
+        "path": "bark3/wood_0064_color_1k.jpg"
+      },
+      "normal": {
+        "path": "bark3/wood_0064_normal_opengl_1k.png"
+      },
+      "ao": {
+        "path": "bark3/wood_0064_ao_1k.jpg"
+      },
+      "roughness": {
+        "path": "bark3/wood_0064_roughness_1k.jpg"
+      }
+    },
+    "brick2": {
+      "albedo": {
+        "path": "brick2/TH_Castle_Brick_Broken_baseColor.png"
+      },
+      "normal": {
+        "path": "brick2/TH_Castle_Brick_Broken_normal.png"
+      },
+      "ao": {
+        "path": "brick2/TH_Castle_Brick_Broken_roughness.png"
+      },
+      "roughness": {
+        "path": "brick2/TH_Castle_Brick_Broken_roughness.png"
+      }
+    },
+    "cobble": {
+      "albedo": {
+        "path": "cobble/floor_pattern_02_diff_1k.png"
+      },
+      "normal": {
+        "path": "cobble/floor_pattern_02_nor_gl_1k.png"
+      },
+      "ao": {
+        "path": "cobble/floor_pattern_02_arm_1k.png",
+        "channel": "r"
+      },
+      "roughness": {
+        "path": "cobble/floor_pattern_02_arm_1k.png",
+        "channel": "g"
+      }
+    },
+    "cobble2": {
+      "albedo": {
+        "path": "cobble2/cobblestone_floor_04_diff_1k.png"
+      },
+      "normal": {
+        "path": "cobble2/cobblestone_floor_04_nor_gl_1k.png"
+      },
+      "ao": {
+        "path": "cobble2/cobblestone_floor_04_arm_1k.png",
+        "channel": "r"
+      },
+      "roughness": {
+        "path": "cobble2/cobblestone_floor_04_arm_1k.png",
+        "channel": "g"
+      }
+    },
+    "concrete": {
+      "albedo": {
+        "path": "concrete/concrete_wall_003_diff_1k.png"
+      },
+      "normal": {
+        "path": "concrete/concrete_wall_003_nor_gl_1k.png"
+      },
+      "ao": {
+        "path": "concrete/concrete_wall_003_arm_1k.png",
+        "channel": "r"
+      },
+      "roughness": {
+        "path": "concrete/concrete_wall_003_arm_1k.png",
+        "channel": "g"
+      }
+    },
+    "dirt": {
+      "albedo": {
+        "path": "dirt/Ground051_1K-PNG_Color.png"
+      },
+      "normal": {
+        "path": "dirt/Ground051_1K-PNG_NormalGL.png"
+      },
+      "ao": {
+        "path": "dirt/Ground051_1K-PNG_AmbientOcclusion.png"
+      },
+      "roughness": {
+        "path": "dirt/Ground051_1K-PNG_Roughness.png"
+      }
+    },
+    "pebbles": {
+      "albedo": {
+        "path": "pebbles/ganges_river_pebbles_diff_1k.png"
+      },
+      "normal": {
+        "path": "pebbles/ganges_river_pebbles_nor_gl_1k.png"
+      },
+      "ao": {
+        "path": "pebbles/ganges_river_pebbles_arm_1k.png",
+        "channel": "r"
+      },
+      "roughness": {
+        "path": "pebbles/ganges_river_pebbles_arm_1k.png",
+        "channel": "g"
+      }
+    },
+    "plaster": {
+      "albedo": {
+        "path": "plaster/white_rough_plaster_diff_1k.png"
+      },
+      "normal": {
+        "path": "plaster/white_rough_plaster_nor_gl_1k.png"
+      },
+      "ao": {
+        "path": "plaster/white_rough_plaster_arm_1k.png",
+        "channel": "r"
+      },
+      "roughness": {
+        "path": "plaster/white_rough_plaster_arm_1k.png",
+        "channel": "g"
+      }
+    },
+    "roof": {
+      "albedo": {
+        "path": "roof/clay_roof_tiles_02_diff_1k.png"
+      },
+      "normal": {
+        "path": "roof/clay_roof_tiles_02_nor_gl_1k.png"
+      },
+      "ao": {
+        "path": "roof/clay_roof_tiles_02_arm_1k.png",
+        "channel": "r"
+      },
+      "roughness": {
+        "path": "roof/clay_roof_tiles_02_arm_1k.png",
+        "channel": "g"
+      }
+    },
+    "sand": {
+      "albedo": {
+        "path": "sand/Ground080_1K-PNG_Color.png"
+      },
+      "normal": {
+        "path": "sand/Ground080_1K-PNG_NormalGL.png"
+      },
+      "ao": {
+        "path": "sand/Ground080_1K-PNG_AmbientOcclusion.png"
+      },
+      "roughness": {
+        "path": "sand/Ground080_1K-PNG_Roughness.png"
       }
     }
   }

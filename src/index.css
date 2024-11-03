@@ -92,7 +92,8 @@ a8"     ""  ""     `Y8  88P'   `"8a  `8b     d8'  ""     `Y8  I8[    ""
                                                                           */
 
 #stats {
-  top: 200px !important;
+  left: auto !important;
+  right: 0px !important;
 }
 
 #stats canvas {
@@ -286,7 +287,7 @@ a8"     ""  ""     `Y8  88P'   `"8a  `8b     d8'  ""     `Y8  I8[    ""
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  width: 182px;
+  width: 200px;
   height: 200px;
   padding: 10px;
 
@@ -296,6 +297,8 @@ a8"     ""  ""     `Y8  88P'   `"8a  `8b     d8'  ""     `Y8  I8[    ""
   background-color: #303145;
   border: 2px solid rgb(159, 159, 159);
   border-radius: 14px;
+
+  overflow-y: scroll;
 }
 
 .inventory-panel-item {

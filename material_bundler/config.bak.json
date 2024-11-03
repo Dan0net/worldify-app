@@ -1,0 +1,33 @@
+{
+  "textureSize": 1024,
+  "materials": {
+    "brick": {
+      "albedo": {
+        "path": "brick/Bricks094_1K-PNG_Color.png"
+      },
+      "normal": {
+        "path": "brick/Bricks094_1K-PNG_NormalGL.png"
+      },
+      "ao": {
+        "path": "brick/Bricks094_1K-PNG_AmbientOcclusion.png"
+      },
+      "roughness": {
+        "path": "brick/Bricks094_1K-PNG_Roughness.png"
+      }
+    },
+    "bark": {
+      "albedo": {
+        "path": "bark/Bark014_1K-PNG_Color.png"
+      },
+      "normal": {
+        "path": "bark/Bark014_1K-PNG_NormalGL.png"
+      },
+      "ao": {
+        "path": "bark/Bark014_1K-PNG_AmbientOcclusion.png"
+      },
+      "roughness": {
+        "path": "bark/Bark014_1K-PNG_Roughness.png"
+      }
+    }
+  }
+}

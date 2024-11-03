@@ -1,10 +1,9 @@
-
 import sharp from "sharp";
 import config from "./config.json" assert { type: "json" };
 import path from "path";
 import fs from "fs";
 
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const imagePath = "./materials";
@@ -17,6 +16,9 @@ const mapChannels = {
   roughness: "r",
   // metallic: [],
 };
+
+// Map channel letters to indices
+const channelIndices = { r: 0, g: 1, b: 2, a: 3 };
 
 async function createDataArrayTextures() {
   const texturesConfig = config.materials;
@@ -41,7 +43,7 @@ async function createDataArrayTextures() {
     for (const mapType in material) {
       const mapConfig = material[mapType];
       const mapPath = path.resolve(__dirname, imagePath, mapConfig.path);
-      console.log(materialIndices, mapType);
+      // console.log(materialIndices, mapType, mapConfig.channel);
 
       // Resize and process the image
       const image = await sharp(mapPath)
@@ -52,14 +54,22 @@ async function createDataArrayTextures() {
 
       const { data, info } = image;
       const { width, height, channels } = info;
-      console.log(width, height, channels);
+
+      console.log(
+        materialName,
+        mapType,
+        width,
+        height,
+        channels,
+        mapConfig.channel ? mapConfig.channel : mapChannels[mapType]
+      );
 
       const dataExtracted = extractChannels(
         data,
         width,
         height,
         channels,
-        mapChannels[mapType]
+        mapConfig.channel ? mapConfig.channel : mapChannels[mapType]
       );
 
       maps[mapType].push({
@@ -132,13 +142,10 @@ function extractChannels(data, width, height, channels, channelMapping) {
 
   const extractedData = Buffer.alloc(channelSize * channelMapping.length);
 
-  // Map channel letters to indices
-  const channelIndices = { r: 0, g: 1, b: 2, a: 3 };
-
   let channelWriteIndex = 0;
   for (const [mapName, channelLetter] of Object.entries(channelMapping)) {
     const channelReadIndex = channelIndices[channelLetter.toLowerCase()];
-    console.log(mapName, channelWriteIndex, channelReadIndex, channelLetter);
+    // console.log(mapName, channelWriteIndex, channelReadIndex, channelLetter);
     for (let i = 0; i < channelSize; i++) {
       extractedData[i * channelMapping.length + channelWriteIndex] =
         data[i * channels + channelReadIndex];
@@ -157,7 +164,7 @@ function combineImages(images) {
   const layers = images.length;
   const layerSize = width * height * channels.length;
   const totalSize = layerSize * layers;
-  console.log(width, height, channels, layers, totalSize);
+  // console.log(width, height, channels, layers, totalSize);
   const combinedData = Buffer.alloc(totalSize);
 
   images.forEach((image, index) => {

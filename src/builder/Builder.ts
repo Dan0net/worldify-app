@@ -155,7 +155,7 @@ export class Builder extends Object3D {
         case "next_material":
           this.nextPrevBuildMaterial(1);
           break;
-        case "prev_Material":
+        case "prev_material":
           this.nextPrevBuildMaterial(-1);
           break;
         case "place":
