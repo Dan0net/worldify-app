@@ -42,15 +42,61 @@ async function createDataArrayTextures() {
 
     for (const mapType in material) {
       const mapConfig = material[mapType];
-      const mapPath = path.resolve(__dirname, imagePath, mapConfig.path);
-      // console.log(materialIndices, mapType, mapConfig.channel);
+      let image;
+      if ("path" in mapConfig) {
+        const mapPath = path.resolve(__dirname, imagePath, mapConfig.path);
+        // console.log(materialIndices, mapType, mapConfig.channel);
 
-      // Resize and process the image
-      const image = await sharp(mapPath)
-        .resize(textureSize, textureSize)
-        // .ensureAlpha() // Ensure images have 4 channels (RGBA)
-        .raw()
-        .toBuffer({ resolveWithObject: true });
+        // Resize and process the image
+        image = await sharp(mapPath)
+          .resize(textureSize, textureSize)
+          // .ensureAlpha() // Ensure images have 4 channels (RGBA)
+          .raw()
+          .toBuffer({ resolveWithObject: true })
+          .then(({ data, info }) => {
+            if (mapType !== "normal") return { data, info };
+
+            const { width, height, channels } = info;
+
+            // Find global min and max pixel values across all channels
+            let min = 255;
+            let max = 0;
+
+            for (let i = 0; i < data.length; i++) {
+              const value = data[i];
+              if (value < min) min = value;
+              if (value > max) max = value;
+            }
+
+            const range = max - min || 1; // Avoid division by zero
+
+            // Normalize all pixel values using the global min and max
+            const normalizedData = Buffer.alloc(data.length);
+
+            for (let i = 0; i < data.length; i++) {
+              normalizedData[i] = ((data[i] - min) * 255) / range;
+            }
+
+            // Create a new image from the normalized data
+            return sharp(normalizedData, {
+              raw: { width, height, channels },
+            })
+              .raw()
+              .toBuffer({ resolveWithObject: true });
+          });
+      } else {
+        // no image for this map type
+        image = await sharp({
+          create: {
+            width: textureSize,
+            height: textureSize,
+            channels: 4,
+            background: { r: 255, g: 255, b: 255, alpha: 255 },
+          },
+        })
+          .raw()
+          .toBuffer({ resolveWithObject: true });
+      }
 
       const { data, info } = image;
       const { width, height, channels } = info;
@@ -78,6 +124,7 @@ async function createDataArrayTextures() {
         height,
         channels: mapChannels[mapType],
       });
+
       // maps[mapType].push({ data, width, height, channels: mapChannels[mapType] });
 
       // // Extract channels if necessary

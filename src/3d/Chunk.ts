@@ -106,6 +106,7 @@ export class Chunk extends Object3D {
     isPlacing = false
   ): boolean {
     worldToChunkPosition(center, this.position);
+    const centerRound = center.clone().round();
     worldToChunkPosition(bbox.min, this.position);
     worldToChunkPosition(bbox.max, this.position);
     bbox.min.floor();

@@ -28,6 +28,68 @@
       "roughness": {
         "path": "bark/Bark014_1K-PNG_Roughness.png"
       }
+    },
+    "roof3": {
+      "albedo": {
+        "path": "roof3/RoofingTiles012A_1K-PNG_Color.png"
+      },
+      "normal": {
+        "path": "roof3/RoofingTiles012A_1K-PNG_NormalGL.png"
+      },
+      "ao": {
+        "path": "roof3/RoofingTiles012A_1K-PNG_AmbientOcclusion.png"
+      },
+      "roughness": {
+        "path": "roof3/RoofingTiles012A_1K-PNG_Roughness.png"
+      }
+    },
+    "wood2": {
+      "albedo": {
+        "path": "wood2/wood_floor_worn_diff_1k.png"
+      },
+      "normal": {
+        "path": "wood2/wood_floor_worn_nor_gl_1k.png"
+      },
+      "ao": {
+        "path": "wood2/wood_floor_worn_arm_1k.png",
+        "channel": "r"
+      },
+      "roughness": {
+        "path": "wood2/wood_floor_worn_arm_1k.png",
+        "channel": "g"
+      }
+    },
+    "wood3": {
+      "albedo": {
+        "path": "wood3/herringbone_parquet_diff_1k.png"
+      },
+      "normal": {
+        "path": "wood3/herringbone_parquet_nor_gl_1k.png"
+      },
+      "ao": {
+        "path": "wood3/herringbone_parquet_arm_1k.png",
+        "channel": "r"
+      },
+      "roughness": {
+        "path": "wood3/herringbone_parquet_arm_1k.png",
+        "channel": "g"
+      }
+    },
+    "tile2": {
+      "albedo": {
+        "path": "tile2/floor_tiles_02_diff_1k.png"
+      },
+      "normal": {
+        "path": "tile2/floor_tiles_02_nor_gl_1k.png"
+      },
+      "ao": {
+        "path": "tile2/floor_tiles_02_arm_1k.png",
+        "channel": "r"
+      },
+      "roughness": {
+        "path": "tile2/floor_tiles_02_arm_1k.png",
+        "channel": "g"
+      }
     }
   }
 }

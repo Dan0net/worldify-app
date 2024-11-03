@@ -16,6 +16,7 @@ import {
   Texture,
   TextureLoader,
   UnsignedByteType,
+  Vector2,
 } from "three";
 import { MatterialPallet } from "./MaterialPallet";
 const apiUrl = import.meta.env.VITE_API_URL;
@@ -30,6 +31,10 @@ export class TerrainMaterial extends MeshStandardMaterial {
       map: new Texture(),
       normalMap: new Texture(),
       normalMapType: ObjectSpaceNormalMap,
+      normalScale: new Vector2(-1,-1),
+      aoMap: new Texture(),
+      roughnessMap: new Texture(),
+      metalness: 0,
       color: new Color(1,0,0),
       toneMapped: false,
       defines: {

@@ -15,7 +15,7 @@ export class Lights extends Object3D {
         this.add(Hlight);
 
         const Dcolor = 0xFFFFFF;
-        const Dintensity = 2.0;
+        const Dintensity = 3.0;
         
         this.shadowLight = new DirectionalLight(Dcolor, Dintensity);
         this.shadowLight.position.copy(this.shadowLightOffset);
