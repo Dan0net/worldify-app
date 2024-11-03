@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 
 /material_bundler/materials
+# Local Netlify folder
+.netlify
