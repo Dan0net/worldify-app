@@ -377,7 +377,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
     // Load material indices
     const materialIndices = await MatterialPallet.getPallet();
-    const resolution = "high";
+    const resolution = "low";
 
     // Fetch and create textures for each map type
     for (const mapType of mapTypes) {
