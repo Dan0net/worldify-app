@@ -157,7 +157,7 @@ export class ChunkCoordinator extends Object3D {
     if (chunkKey in chunkDatas) {
       const existingChunk = chunkDatas[chunkKey];
       if (existingChunk) {
-        // console.log("loading chunk from storage", chunkCoord);
+        console.log("loading chunk from storage", chunkCoord);
         return existingChunk;
       }
     }

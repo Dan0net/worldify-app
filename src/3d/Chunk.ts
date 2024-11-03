@@ -19,7 +19,7 @@ import {
   decompressUint8ToFloat32,
   gridCellToIndex,
   pointIsInsideGrid,
-  uint8ArrayToBase64,
+  arrayToBase64,
   worldToChunkPosition,
 } from "../utils/functions";
 

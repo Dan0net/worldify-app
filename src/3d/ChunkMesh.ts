@@ -14,7 +14,10 @@ import {
   clamp,
   compressFloat32ArrayToUint8,
   decompressUint8ToFloat32,
-  uint8ArrayToBase64,
+  arrayToBase64,
+  base64ToUint16Array,
+  packGridArray,
+  unpackGridArray,
 } from "../utils/functions";
 import { generateMeshWorker } from "../workers/MeshWorkerMultimat";
 import { TerrainMaterial } from "../material/TerrainMaterial";
@@ -24,8 +27,9 @@ import { BuildPreset } from "../builder/BuildPresets";
 
 export class ChunkMesh extends Mesh {
   private data;
-  public grid = new Float32Array();
-  public materialGrid = new Float32Array();
+  public weights = new Float32Array();
+  public materials = new Float32Array();
+  public lights = new Float32Array();
 
   constructor() {
     super(new BufferGeometry(), TerrainMaterial.getInstance());
@@ -44,19 +48,34 @@ export class ChunkMesh extends Mesh {
   //  88   `"YbbdP"'   `"8bbdP"Y8   `"8bbdP"Y8
 
   readGridFromString(chunkData: ChunkData) {
-    const gridUint8 = base64ToUint8Array(chunkData.grid);
-    this.grid = decompressUint8ToFloat32(gridUint8);
-    this.materialGrid = new Float32Array(this.grid).fill(1);
+    const _grid = base64ToUint16Array(chunkData.grid);
+    // console.log(_grid);
+    const grid = unpackGridArray(_grid);
+
+    this.weights = decompressUint8ToFloat32(grid.weights, -0.5, 0.5, 5);
+    this.materials = new Float32Array(grid.materials);
+    this.lights = new Float32Array(grid.lights);
+
+    // console.log(this.weights[0], this.weights[30000]);
+    // console.log(this.materials[0], this.materials[30000]);
+    // console.log(this.lights[0], this.lights[30000]);
   }
 
   copyGridFromChunkMesh(chunkMesh: ChunkMesh) {
-    this.grid = new Float32Array(chunkMesh.grid);
-    this.materialGrid = new Float32Array(chunkMesh.materialGrid);
+    this.weights = new Float32Array(chunkMesh.weights);
+    this.materials = new Float32Array(chunkMesh.materials);
+    this.lights = new Float32Array(chunkMesh.materials);
   }
 
   gridToString(): string {
-    const gridUint8 = compressFloat32ArrayToUint8(this.grid);
-    return uint8ArrayToBase64(gridUint8);
+    const _weights = compressFloat32ArrayToUint8(this.weights, -0.5, 0.5, 5);
+
+    const grid = packGridArray(
+      _weights,
+      new Uint8Array(this.materials),
+      new Uint8Array(this.lights)
+    );
+    return arrayToBase64(grid);
   }
 
   //                                     88
@@ -74,15 +93,15 @@ export class ChunkMesh extends Mesh {
     const workerPool = getChunkWorkerPool();
 
     const req = {
-      grid: this.grid,
+      grid: this.weights,
       gridSize: {
         x: TERRAIN_GRID_SIZE_MARGIN,
         y: TERRAIN_GRID_SIZE_MARGIN,
         z: TERRAIN_GRID_SIZE_MARGIN,
       },
-      adjustedIndices: this.materialGrid,
+      adjustedIndices: this.materials,
       lightIncidents: new Float32Array(),
-      lightIndices: new Float32Array(this.grid).fill(0),
+      lightIndices: new Float32Array(this.weights).fill(0),
     };
 
     // const data = await workerPool.enqueueTask(req);
@@ -170,16 +189,16 @@ export class ChunkMesh extends Mesh {
 
     if (
       buildConfig.constructive &&
-      ((v > this.grid[gridIndex] && v > 0)||
-        (this.grid[gridIndex] === -0.5))
+      ((v > this.weights[gridIndex] && v > 0) ||
+        this.weights[gridIndex] === -0.5)
     ) {
-      this.grid[gridIndex] = v;
-      this.materialGrid[gridIndex] = buildConfig.material;
+      this.weights[gridIndex] = v;
+      this.materials[gridIndex] = buildConfig.material;
       return true;
     }
 
-    if (!buildConfig.constructive && v < this.grid[gridIndex]) {
-      this.grid[gridIndex] = v;
+    if (!buildConfig.constructive && v < this.weights[gridIndex]) {
+      this.weights[gridIndex] = v;
       return true;
     }
 

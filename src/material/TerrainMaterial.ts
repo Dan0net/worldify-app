@@ -513,9 +513,6 @@ export class TerrainMaterial extends MeshStandardMaterial {
   }
 
   public setTextures(textures) {
-    const a = new TextureLoader().load("./images/Bricks094_1K-PNG_Color.png");
-    this.map = a;
-
     this._shader.uniforms.mapArray = {
       value: textures["albedo"]
     };
