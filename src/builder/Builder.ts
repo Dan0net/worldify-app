@@ -296,10 +296,12 @@ export class Builder extends Object3D {
       this._bboxShape.min
         .divideScalar(TERRAIN_SCALE)
         .floor()
+        .subScalar(1)
         .multiplyScalar(TERRAIN_SCALE),
       this._bboxShape.max
         .divideScalar(TERRAIN_SCALE)
         .ceil()
+        .addScalar(1)
         .multiplyScalar(TERRAIN_SCALE)
     );
 

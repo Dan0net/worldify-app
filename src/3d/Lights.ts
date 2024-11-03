@@ -45,7 +45,7 @@ export class Lights extends Object3D {
 			skyBoxTexture.mapping = EquirectangularReflectionMapping;
 			skyBoxTexture.colorSpace = SRGBColorSpace;
 			this.scene.background = skyBoxTexture;
-			// this.scene.environment = skyBoxTexture;
+			this.scene.environment = skyBoxTexture;
 		});
     }
 }

@@ -1,1 +1,156 @@
-{"materials":["grass","rock","wood","rock2","bark2","bark3","brick2","cobble","cobble2","concrete","dirt","pebbles","plaster","roof","sand","snow","wood2","wood3","tile","plaster2","tile2","brick3","stone2","brick5","rock3","stone","rock_moss","stone_moss","gravel","asphelt","brick4","brick6","brick7","brick8","tile3","metal","metal2","roof2","roof3","tile4","tile5"],"maps":{"albedo":{"width":1024,"height":1024,"channels":"rgba","layers":41},"normal":{"width":1024,"height":1024,"channels":"rgba","layers":41},"ao":{"width":1024,"height":1024,"channels":"r","layers":41},"roughness":{"width":1024,"height":1024,"channels":"r","layers":41}},"indicies":{"grass":0,"rock":1,"wood":2,"rock2":3,"bark2":4,"bark3":5,"brick2":6,"cobble":7,"cobble2":8,"concrete":9,"dirt":10,"pebbles":11,"plaster":12,"roof":13,"sand":14,"snow":15,"wood2":16,"wood3":17,"tile":18,"plaster2":19,"tile2":20,"brick3":21,"stone2":22,"brick5":23,"rock3":24,"stone":25,"rock_moss":26,"stone_moss":27,"gravel":28,"asphelt":29,"brick4":30,"brick6":31,"brick7":32,"brick8":33,"tile3":34,"metal":35,"metal2":36,"roof2":37,"roof3":38,"tile4":39,"tile5":40}}
+{
+  "materials": [
+    "grass",
+    "rock",
+    "wood",
+    "rock2",
+    "bark2",
+    "bark3",
+    "brick2",
+    "cobble",
+    "cobble2",
+    "concrete",
+    "dirt",
+    "pebbles",
+    "plaster",
+    "roof",
+    "sand",
+    "snow",
+    "tile",
+    "plaster2",
+    "brick3",
+    "stone2",
+    "brick5",
+    "rock3",
+    "stone",
+    "rock_moss",
+    "stone_moss",
+    "gravel",
+    "asphelt",
+    "brick4",
+    "brick6",
+    "brick7",
+    "brick8",
+    "tile3",
+    "metal",
+    "metal2",
+    "roof2",
+    "tile4",
+    "tile5",
+    "snow2",
+    "moss",
+    "dirt2",
+    "leaves",
+    "leaves2",
+    "grass2",
+    "wood2",
+    "wood3",
+    "grass3",
+    "grass4"
+  ],
+  "maps": {
+    "low": {
+      "albedo": {
+        "width": 128,
+        "height": 128,
+        "channels": "rgba",
+        "layers": 47
+      },
+      "normal": {
+        "width": 128,
+        "height": 128,
+        "channels": "rgba",
+        "layers": 47
+      },
+      "ao": { "width": 128, "height": 128, "channels": "r", "layers": 47 },
+      "roughness": {
+        "width": 128,
+        "height": 128,
+        "channels": "r",
+        "layers": 47
+      },
+      "metalness": {
+        "width": 128,
+        "height": 128,
+        "channels": "r",
+        "layers": 36
+      }
+    },
+    "high": {
+      "albedo": {
+        "width": 1024,
+        "height": 1024,
+        "channels": "rgba",
+        "layers": 47
+      },
+      "normal": {
+        "width": 1024,
+        "height": 1024,
+        "channels": "rgba",
+        "layers": 47
+      },
+      "ao": { "width": 1024, "height": 1024, "channels": "r", "layers": 47 },
+      "roughness": {
+        "width": 1024,
+        "height": 1024,
+        "channels": "r",
+        "layers": 47
+      },
+      "metalness": {
+        "width": 1024,
+        "height": 1024,
+        "channels": "r",
+        "layers": 36
+      }
+    }
+  },
+  "indicies": {
+    "grass": 0,
+    "rock": 1,
+    "wood": 2,
+    "rock2": 3,
+    "bark2": 4,
+    "bark3": 5,
+    "brick2": 6,
+    "cobble": 7,
+    "cobble2": 8,
+    "concrete": 9,
+    "dirt": 10,
+    "pebbles": 11,
+    "plaster": 12,
+    "roof": 13,
+    "sand": 14,
+    "snow": 15,
+    "tile": 16,
+    "plaster2": 17,
+    "brick3": 18,
+    "stone2": 19,
+    "brick5": 20,
+    "rock3": 21,
+    "stone": 22,
+    "rock_moss": 23,
+    "stone_moss": 24,
+    "gravel": 25,
+    "asphelt": 26,
+    "brick4": 27,
+    "brick6": 28,
+    "brick7": 29,
+    "brick8": 30,
+    "tile3": 31,
+    "metal": 32,
+    "metal2": 33,
+    "roof2": 34,
+    "tile4": 35,
+    "tile5": 36,
+    "snow2": 37,
+    "moss": 38,
+    "dirt2": 39,
+    "leaves": 40,
+    "leaves2": 41,
+    "grass2": 42,
+    "wood2": 43,
+    "wood3": 44,
+    "grass3": 45,
+    "grass4": 46
+  }
+}

@@ -2,35 +2,36 @@ import sharp from "sharp";
 import config from "./config.json" assert { type: "json" };
 import path from "path";
 import fs from "fs";
+import zlib from "zlib";
 
 import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const imagePath = "./materials";
-const outputPath = "../public/materials";
+const outputBasePath = "../public/materials";
 
 const mapChannels = {
   albedo: "rgba",
   normal: "rgba",
   ao: "r",
   roughness: "r",
-  // metallic: [],
+  metalness: "r",
 };
 
 // Map channel letters to indices
 const channelIndices = { r: 0, g: 1, b: 2, a: 3 };
 
-async function createDataArrayTextures() {
-  const texturesConfig = config.materials;
-  const textureSize = config.textureSize || 512;
+const texturesConfig = config.materials;
+// const textureSize = config.textureSize || 512;
 
+async function createDataArrayTextures(textureSize, outputPath) {
   // Initialize data structures for each map type
   const maps = {
     albedo: [],
     normal: [],
     ao: [],
     roughness: [],
-    // metallic: [],
+    metalness: [],
   };
 
   const materialIndices = {}; // Keep track of material indices
@@ -86,6 +87,7 @@ async function createDataArrayTextures() {
           });
       } else {
         // no image for this map type
+        // console.log('no map', mapType)
         image = await sharp({
           create: {
             width: textureSize,
@@ -101,13 +103,16 @@ async function createDataArrayTextures() {
       const { data, info } = image;
       const { width, height, channels } = info;
 
+      let extractChannel = mapConfig.channel ? mapConfig.channel : mapChannels[mapType];
+      if (mapType === 'metalness') extractChannel = 'b';
+
       console.log(
         materialName,
         mapType,
         width,
         height,
         channels,
-        mapConfig.channel ? mapConfig.channel : mapChannels[mapType]
+        extractChannel
       );
 
       const dataExtracted = extractChannels(
@@ -115,7 +120,7 @@ async function createDataArrayTextures() {
         width,
         height,
         channels,
-        mapConfig.channel ? mapConfig.channel : mapChannels[mapType]
+        extractChannel
       );
 
       maps[mapType].push({
@@ -149,36 +154,43 @@ async function createDataArrayTextures() {
 
   const materialDefinitions = {
     materials: Object.keys(config.materials),
-    maps: {},
+    maps: {
+      low: {},
+      high: {},
+    },
     indicies: materialIndices,
   };
 
   // For each map type, combine the images into a single buffer
-  for (const mapType in maps) {
-    if (maps[mapType].length === 0) continue;
+  for (const resolution in config.textureSize) {
+    for (const mapType in maps) {
+      if (maps[mapType].length === 0) continue;
 
-    const { combinedData, width, height, layers } = combineImages(
-      maps[mapType]
-    );
+      const { combinedData, width, height, layers } = combineImages(
+        maps[mapType]
+      );
 
-    // Write the binary file
-    const outputDir = path.join(__dirname, outputPath);
-    fs.writeFileSync(path.join(outputDir, `${mapType}.bin`), combinedData);
+      const gzippedData = zlib.gzipSync(combinedData, { level: 9 });
 
-    // Write the metadata file
-    const metadata = {
-      width,
-      height,
-      channels: maps[mapType][0].channels,
-      layers,
-    };
+      // Write the binary file
+      const outputDir = path.join(__dirname, outputPath);
+      fs.writeFileSync(path.join(outputDir, `${mapType}.bin.gz`), gzippedData);
 
-    materialDefinitions["maps"][mapType] = metadata;
+      // Write the metadata file
+      const metadata = {
+        width: config.textureSize[resolution],
+        height: config.textureSize[resolution],
+        channels: maps[mapType][0].channels,
+        layers,
+      };
+
+      materialDefinitions["maps"][resolution][mapType] = metadata;
+    }
   }
 
   // Write material indices mapping
   fs.writeFileSync(
-    path.join(__dirname, outputPath, "pallet.json"),
+    path.join(__dirname, outputBasePath, "pallet.json"),
     JSON.stringify(materialDefinitions)
   );
 }
@@ -222,7 +234,17 @@ function combineImages(images) {
   return { combinedData, width, height, channels, layers };
 }
 
-createDataArrayTextures()
+console.log("*** LOW ***");
+createDataArrayTextures(config.textureSize.low, outputBasePath + "/low")
+  .then(() => {
+    console.log("DataArrayTextures created successfully");
+  })
+  .catch((err) => {
+    console.error("Error creating DataArrayTextures:", err);
+  });
+
+console.log("*** HIGH ***");
+createDataArrayTextures(config.textureSize.high, outputBasePath + "/high")
   .then(() => {
     console.log("DataArrayTextures created successfully");
   })

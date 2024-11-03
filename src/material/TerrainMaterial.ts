@@ -31,16 +31,18 @@ export class TerrainMaterial extends MeshStandardMaterial {
       map: new Texture(),
       normalMap: new Texture(),
       normalMapType: ObjectSpaceNormalMap,
-      normalScale: new Vector2(-1,-1),
+      normalScale: new Vector2(-1, -1),
       aoMap: new Texture(),
       roughnessMap: new Texture(),
-      metalness: 0,
-      color: new Color(1,0,0),
+      // metalnessMap: new Texture(),
+      // roughness: 0.5,
+      metalness: 0.25,
+      color: new Color(1, 0, 0),
       toneMapped: false,
       defines: {
         // 'USE_MAP': '',
         // 'USE_UV': '',
-        'USE_SHADOWMAP': ''
+        USE_SHADOWMAP: "",
       },
     });
 
@@ -50,12 +52,21 @@ export class TerrainMaterial extends MeshStandardMaterial {
       this._shader = shader;
 
       shader.uniforms.mapArray = {
-        value: dummyDataArrayTexture()
+        value: dummyDataArrayTexture(),
       };
       shader.uniforms.normalArray = {
-        value: dummyDataArrayTexture()
+        value: dummyDataArrayTexture(),
       };
-      shader.uniforms.repeatScale = { value: 1.0 / 6.0 };
+      shader.uniforms.aoArray = {
+        value: dummyDataArrayTexture(),
+      };
+      shader.uniforms.roughnessArray = {
+        value: dummyDataArrayTexture(),
+      };
+      // shader.uniforms.metalnessArray = {
+      //   value: dummyDataArrayTexture(),
+      // };
+      shader.uniforms.repeatScale = { value: 1.0 / 4.0 };
 
       shader.vertexShader =
         `
@@ -89,6 +100,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
           uniform sampler2DArray normalArray;
           uniform sampler2DArray aoArray;
           uniform sampler2DArray roughnessArray;
+          uniform sampler2DArray metalnessArray;
           uniform float repeatScale;
           varying vec3 vPos;
           varying vec3 vNormal2;
@@ -102,7 +114,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
               
               vec3 getTriPlanarBlend(vec3 _wNorm){
                   vec3 blending = vec3( _wNorm );                
-                  blending = abs(blending);
+                  blending = pow(abs(blending), vec3(8.0, 8.0, 8.0));
 
                   blending = normalize(max(blending, 0.00001)); // Force weights to sum to 1.0
                   float b = blending.x + blending.y + blending.z;
@@ -290,228 +302,25 @@ export class TerrainMaterial extends MeshStandardMaterial {
               vec3 texelRoughness = getTriPlanarTexture( roughnessArray ).rgb;
 
               // reads channel G, compatible with a combined OcclusionRoughnessMetallic (RGB) texture
-              roughnessFactor *= texelRoughness.g;
+              roughnessFactor *= texelRoughness.r;
 
           #endif
           `
       );
 
       shader.fragmentShader = shader.fragmentShader.replace(
-        "#include <lights_pars_begin>",
+        "#include <metalnessmap_fragment>",
         `
-          uniform bool receiveShadow;
-          varying vec3 ambientLightColor; // change ambient light to input from vertex shader
-          // uniform vec3 ambientLightColor;
+          float metalnessFactor = metalness;
 
-          #if defined( USE_LIGHT_PROBES )
+          // #ifdef USE_METALNESSMAP
 
-              uniform vec3 lightProbe[ 9 ];
+          //   vec4 texelMetalness = getTriPlanarTexture( metalnessArray ).rgba;
 
-          #endif
+          //   // reads channel B, compatible with a combined OcclusionRoughnessMetallic (RGB) texture
+          //   metalnessFactor *= texelMetalness.r;
 
-          // get the irradiance (radiance convolved with cosine lobe) at the point 'normal' on the unit sphere
-          // source: https://graphics.stanford.edu/papers/envmap/envmap.pdf
-          vec3 shGetIrradianceAt( in vec3 normal, in vec3 shCoefficients[ 9 ] ) {
-
-              // normal is assumed to have unit length
-
-              float x = normal.x, y = normal.y, z = normal.z;
-
-              // band 0
-              vec3 result = shCoefficients[ 0 ] * 0.886227;
-
-              // band 1
-              result += shCoefficients[ 1 ] * 2.0 * 0.511664 * y;
-              result += shCoefficients[ 2 ] * 2.0 * 0.511664 * z;
-              result += shCoefficients[ 3 ] * 2.0 * 0.511664 * x;
-
-              // band 2
-              result += shCoefficients[ 4 ] * 2.0 * 0.429043 * x * y;
-              result += shCoefficients[ 5 ] * 2.0 * 0.429043 * y * z;
-              result += shCoefficients[ 6 ] * ( 0.743125 * z * z - 0.247708 );
-              result += shCoefficients[ 7 ] * 2.0 * 0.429043 * x * z;
-              result += shCoefficients[ 8 ] * 0.429043 * ( x * x - y * y );
-
-              return result;
-
-          }
-
-          vec3 getLightProbeIrradiance( const in vec3 lightProbe[ 9 ], const in vec3 normal ) {
-
-              vec3 worldNormal = inverseTransformDirection( normal, viewMatrix );
-
-              vec3 irradiance = shGetIrradianceAt( worldNormal, lightProbe );
-
-              return irradiance;
-
-          }
-
-          vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
-
-              vec3 irradiance = ambientLightColor;
-
-              return irradiance;
-
-          }
-
-          float getDistanceAttenuation( const in float lightDistance, const in float cutoffDistance, const in float decayExponent ) {
-
-              // based upon Frostbite 3 Moving to Physically-based Rendering
-              // page 32, equation 26: E[window1]
-              // https://seblagarde.files.wordpress.com/2015/07/course_notes_moving_frostbite_to_pbr_v32.pdf
-              float distanceFalloff = 1.0 / max( pow( lightDistance, decayExponent ), 0.01 );
-
-              if ( cutoffDistance > 0.0 ) {
-
-                  distanceFalloff *= pow2( saturate( 1.0 - pow4( lightDistance / cutoffDistance ) ) );
-
-              }
-
-              return distanceFalloff;
-
-          }
-
-          float getSpotAttenuation( const in float coneCosine, const in float penumbraCosine, const in float angleCosine ) {
-
-              return smoothstep( coneCosine, penumbraCosine, angleCosine );
-
-          }
-
-          #if NUM_DIR_LIGHTS > 0
-
-              struct DirectionalLight {
-                  vec3 direction;
-                  vec3 color;
-              };
-
-              uniform DirectionalLight directionalLights[ NUM_DIR_LIGHTS ];
-
-              void getDirectionalLightInfo( const in DirectionalLight directionalLight, out IncidentLight light ) {
-
-                  light.color = directionalLight.color;
-                  light.direction = directionalLight.direction;
-                  light.visible = true;
-
-              }
-
-          #endif
-
-
-          #if NUM_POINT_LIGHTS > 0
-
-              struct PointLight {
-                  vec3 position;
-                  vec3 color;
-                  float distance;
-                  float decay;
-              };
-
-              uniform PointLight pointLights[ NUM_POINT_LIGHTS ];
-
-              // light is an out parameter as having it as a return value caused compiler errors on some devices
-              void getPointLightInfo( const in PointLight pointLight, const in vec3 geometryPosition, out IncidentLight light ) {
-
-                  vec3 lVector = pointLight.position - geometryPosition;
-
-                  light.direction = normalize( lVector );
-
-                  float lightDistance = length( lVector );
-
-                  light.color = pointLight.color;
-                  light.color *= getDistanceAttenuation( lightDistance, pointLight.distance, pointLight.decay );
-                  light.visible = ( light.color != vec3( 0.0 ) );
-
-              }
-
-          #endif
-
-
-          #if NUM_SPOT_LIGHTS > 0
-
-              struct SpotLight {
-                  vec3 position;
-                  vec3 direction;
-                  vec3 color;
-                  float distance;
-                  float decay;
-                  float coneCos;
-                  float penumbraCos;
-              };
-
-              uniform SpotLight spotLights[ NUM_SPOT_LIGHTS ];
-
-              // light is an out parameter as having it as a return value caused compiler errors on some devices
-              void getSpotLightInfo( const in SpotLight spotLight, const in vec3 geometryPosition, out IncidentLight light ) {
-
-                  vec3 lVector = spotLight.position - geometryPosition;
-
-                  light.direction = normalize( lVector );
-
-                  float angleCos = dot( light.direction, spotLight.direction );
-
-                  float spotAttenuation = getSpotAttenuation( spotLight.coneCos, spotLight.penumbraCos, angleCos );
-
-                  if ( spotAttenuation > 0.0 ) {
-
-                      float lightDistance = length( lVector );
-
-                      light.color = spotLight.color * spotAttenuation;
-                      light.color *= getDistanceAttenuation( lightDistance, spotLight.distance, spotLight.decay );
-                      light.visible = ( light.color != vec3( 0.0 ) );
-
-                  } else {
-
-                      light.color = vec3( 0.0 );
-                      light.visible = false;
-
-                  }
-
-              }
-
-          #endif
-
-
-          #if NUM_RECT_AREA_LIGHTS > 0
-
-              struct RectAreaLight {
-                  vec3 color;
-                  vec3 position;
-                  vec3 halfWidth;
-                  vec3 halfHeight;
-              };
-
-              // Pre-computed values of LinearTransformedCosine approximation of BRDF
-              // BRDF approximation Texture is 64x64
-              uniform sampler2D ltc_1; // RGBA Float
-              uniform sampler2D ltc_2; // RGBA Float
-
-              uniform RectAreaLight rectAreaLights[ NUM_RECT_AREA_LIGHTS ];
-
-          #endif
-
-
-          #if NUM_HEMI_LIGHTS > 0
-
-              struct HemisphereLight {
-                  vec3 direction;
-                  vec3 skyColor;
-                  vec3 groundColor;
-              };
-
-              uniform HemisphereLight hemisphereLights[ NUM_HEMI_LIGHTS ];
-
-              vec3 getHemisphereLightIrradiance( const in HemisphereLight hemiLight, const in vec3 normal ) {
-
-                  float dotNL = dot( normal, hemiLight.direction );
-                  float hemiDiffuseWeight = 0.5 * dotNL + 0.5;
-
-                  vec3 irradiance = mix( hemiLight.groundColor, hemiLight.skyColor, hemiDiffuseWeight );
-
-                  return irradiance;
-
-              }
-
-          #endif
+          // #endif
           `
       );
     };
@@ -530,6 +339,10 @@ export class TerrainMaterial extends MeshStandardMaterial {
     this._shader.uniforms.roughnessArray = {
       value: textures["roughness"],
     };
+    // this._shader.uniforms.metalnessArray = {
+    //   // value: textures["ao"],
+    //   // value: textures["metalness"],
+    // };
 
     this.needsUpdate = true;
   }
@@ -557,20 +370,32 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
   static async loadDataArrayTextures() {
     const mapTypes = ["albedo", "normal", "ao", "roughness"];
+    // const mapTypes = ["albedo", "normal", "ao", "roughness", "metalness"];
 
     const textures = {};
     const metadata = {};
 
     // Load material indices
     const materialIndices = await MatterialPallet.getPallet();
+    const resolution = "high";
 
     // Fetch and create textures for each map type
     for (const mapType of mapTypes) {
-      const { width, height, channels, layers } = materialIndices.maps[mapType];
-      const channelSize = channels.length
+      const { width, height, channels, layers } =
+        materialIndices.maps[resolution][mapType];
+      const channelSize = channels.length;
       // console.log(mapType, width, height, channelSize, layers)
       // Fetch binary data
-      const dataResponse = await fetch(`materials/${mapType}.bin`);
+      const dataResponse = await fetch(
+        `materials/${resolution}/${mapType}.bin.gz`,
+        {
+          headers: {
+            "Content-Type": "application/octet-stream",
+            "Content-Encoding": "gzip",
+            "Content-Disposition": `attachment; filename="${mapType}.bin"`,
+          },
+        }
+      );
       const arrayBuffer = await dataResponse.arrayBuffer();
 
       // Create the typed array from the ArrayBuffer
@@ -587,7 +412,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
       } else if (channelSize === 1) {
         format = RedFormat;
       }
-      // console.log(channelSize, format)
+      console.log(mapType, channelSize, format)
 
       // Create the DataArrayTexture
       const texture = new DataArrayTexture(data, width, height, layers);
@@ -616,7 +441,7 @@ function dummyDataArrayTexture() {
   // Define texture dimensions
   const width = 256;
   const height = 256;
-  const layers = 3; // Number of layers in the texture array
+  const layers = 1; // Number of layers in the texture array
   const channels = 4;
 
   // Create an array to hold pixel data for all layers
@@ -625,10 +450,10 @@ function dummyDataArrayTexture() {
 
   // Fill each layer with a different color for testing
   for (let layer = 0; layer < layers; layer++) {
-    const color = new Color();
-    if (layer === 0) color.set("red");
-    else if (layer === 1) color.set("green");
-    else if (layer === 2) color.set("blue");
+    const color = new Color("grey");
+    // if (layer === 0) color.set("red");
+    // else if (layer === 1) color.set("green");
+    // else if (layer === 2) color.set("blue");
 
     const r = Math.floor(color.r * 255);
     const g = Math.floor(color.g * 255);
@@ -658,5 +483,5 @@ function dummyDataArrayTexture() {
   // texture.minFilter = LinearFilter;
   // texture.magFilter = LinearFilter;
 
-  return texture
+  return texture;
 }
