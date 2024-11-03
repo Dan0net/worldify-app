@@ -400,7 +400,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
       // Create the typed array from the ArrayBuffer
       let data = new Uint8Array(arrayBuffer);
-      // console.log(width* height* layers*channelSize, data.length);
+      console.log(mapType, data.length);
 
       // Determine the texture format
       let format;
