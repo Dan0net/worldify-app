@@ -226,6 +226,36 @@
       "roughness": {
         "path": "sand/Ground080_1K-PNG_Roughness.png"
       }
+    },
+    "sand": {
+      "albedo": {
+        "path": "sand/Ground080_1K-PNG_Color.png"
+      },
+      "normal": {
+        "path": "sand/Ground080_1K-PNG_NormalGL.png"
+      },
+      "ao": {
+        "path": "sand/Ground080_1K-PNG_AmbientOcclusion.png"
+      },
+      "roughness": {
+        "path": "sand/Ground080_1K-PNG_Roughness.png"
+      }
+    },
+    "snow": {
+      "albedo": {
+        "path": "snow/snow_02_diff_1k.png"
+      },
+      "normal": {
+        "path": "snow/snow_02_nor_gl_1k.png"
+      },
+      "ao": {
+        "path": "snow/snow_02_arm_1k.png",
+        "channel": "r"
+      },
+      "roughness": {
+        "path": "snow/snow_02_arm_1k.png",
+        "channel": "g"
+      }
     }
   }
 }
