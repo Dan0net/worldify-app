@@ -1,17 +1,25 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import UI from './ui/UI.tsx'
-import { Worldify } from './3d/Worldify.ts'
-import { arrayToBase64, base64ToUint16Array, compressFloat32ArrayToUint8, packGridArray, unpackGridArray } from './utils/functions.ts'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import UI from "./ui/UI.tsx";
+import { Worldify } from "./3d/Worldify.ts";
+import {
+  arrayToBase64,
+  base64ToUint16Array,
+  compressFloat32ArrayToUint8,
+  packGridArray,
+  unpackGridArray,
+} from "./utils/functions.ts";
+import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <UI />
-  </StrictMode>,
-)
+  </StrictMode>
+);
 
 new Worldify();
+// Init gui
 
 // const weights = new Float32Array([-0.5, -0.47, 0.4]);
 // const materials = new Uint8Array([85, 60, 100]);
@@ -25,7 +33,6 @@ new Worldify();
 // console.log(_weights)
 // const grid = packGridArray(_weights, materials, lights)
 // const base64 = arrayToBase64(grid)
-
 
 // const __grid = base64ToUint16Array(base64)
 

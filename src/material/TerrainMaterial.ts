@@ -19,6 +19,8 @@ import {
   Vector2,
 } from "three";
 import { MatterialPallet } from "./MaterialPallet";
+import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
+import { getGUI } from "../utils/gui";
 const apiUrl = import.meta.env.VITE_API_URL;
 
 export class TerrainMaterial extends MeshStandardMaterial {
@@ -34,6 +36,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
       normalScale: new Vector2(-1, -1),
       aoMap: new Texture(),
       roughnessMap: new Texture(),
+      roughness: 0.5,
       // metalnessMap: new Texture(),
       // roughness: 0.5,
       metalness: 0.25,
@@ -46,22 +49,51 @@ export class TerrainMaterial extends MeshStandardMaterial {
       },
     });
 
+    const _this = this;
+    const params = {
+      roughness: 0.5,
+      metalness: 0.25,
+      normalScale: -1,
+    };
+
+    const gui = getGUI();
+
+    const terrainMaterialFolder = gui.addFolder("terrain material");
+    terrainMaterialFolder
+      .add(params, "roughness", 0, 1)
+      .onChange(function (value) {
+        _this.roughness = value;
+        _this.needsUpdate = true;
+      });
+    terrainMaterialFolder
+      .add(params, "metalness", 0, 1)
+      .onChange(function (value) {
+        _this.metalness = value;
+        _this.needsUpdate = true;
+      });
+    terrainMaterialFolder
+      .add(params, "normalScale", -1, 1)
+      .onChange(function (value) {
+        _this.normalScale = new Vector2(Number(value), Number(value));
+        _this.needsUpdate = true;
+      });
+
     this.needsUpdate = true;
 
     this.onBeforeCompile = (shader) => {
       this._shader = shader;
 
       shader.uniforms.mapArray = {
-        value: dummyDataArrayTexture(),
+        value: dummyDataArrayTexture('white'),
       };
       shader.uniforms.normalArray = {
-        value: dummyDataArrayTexture(),
+        value: dummyDataArrayTexture('white'),
       };
       shader.uniforms.aoArray = {
-        value: dummyDataArrayTexture(),
+        value: dummyDataArrayTexture('white'),
       };
       shader.uniforms.roughnessArray = {
-        value: dummyDataArrayTexture(),
+        value: dummyDataArrayTexture('white'),
       };
       // shader.uniforms.metalnessArray = {
       //   value: dummyDataArrayTexture(),
@@ -122,7 +154,6 @@ export class TerrainMaterial extends MeshStandardMaterial {
                   return blending;
                   // return pow(blending, vec3(4.0, 4.0, 4.0));
               }
-
               
               vec3 getPos() {
                   float pixelSize = 1.0 / 64.0;
@@ -143,19 +174,19 @@ export class TerrainMaterial extends MeshStandardMaterial {
                   );
               }
 
-              vec4 getTriPlanarSmoothBlend(sampler2DArray tex) {
-                  vec3 pos = getPos();
+              vec4 getTriPlanarSmoothBlend(sampler2DArray tex, vec3 pos, vec3 blending) {
+                  // vec3 pos = getPos();
 
-                  vec3 blending = getTriPlanarBlend( vNormal2 );
+                  // vec3 blending = getTriPlanarBlend( vNormal2 );
 
                   // vec3 smoothBary = getSmoothBary();
-                  vec3 smoothBary = vBary;
+                  // vec3 smoothBary = vBary;
                   
-                  vec3 xaxis = getTriAxisSmoothBlend(tex, pos.zy, smoothBary);
+                  vec3 xaxis = getTriAxisSmoothBlend(tex, pos.zy, vBary);
 
-                  vec3 zaxis = getTriAxisSmoothBlend(tex, pos.xy, smoothBary);
+                  vec3 zaxis = getTriAxisSmoothBlend(tex, pos.xy, vBary);
 
-                  vec3 yaxis = getTriAxisSmoothBlend(tex, pos.xz, smoothBary);
+                  vec3 yaxis = getTriAxisSmoothBlend(tex, pos.xz, vBary);
 
                   return vec4( xaxis * blending.x + yaxis * blending.y + zaxis * blending.z, 1.0 );
               
@@ -205,9 +236,9 @@ export class TerrainMaterial extends MeshStandardMaterial {
               
               }
 
-              vec4 getTriPlanarTexture(sampler2DArray tex) {
+              vec4 getTriPlanarTexture(sampler2DArray tex, vec3 pos, vec3 blending) {
                   // return getTriTextureBasic(tex);
-                  return getTriPlanarSmoothBlend(tex);
+                  return getTriPlanarSmoothBlend(tex, pos, blending);
               }
               `
         );
@@ -220,7 +251,9 @@ export class TerrainMaterial extends MeshStandardMaterial {
       shader.fragmentShader = shader.fragmentShader.replace(
         "vec4 diffuseColor = vec4( diffuse, opacity );",
         `
-          vec4 diffuseColor =  vec4( getTriPlanarTexture(mapArray).rgb, opacity );
+          vec3 pos = getPos();
+          vec3 blending = getTriPlanarBlend( vNormal2 );
+          vec4 diffuseColor =  vec4( getTriPlanarTexture(mapArray, pos, blending).rgb, opacity );
           // vec4 diffuseColor =  vec4(.5,.5,.5, 1.0);
           // vec4 diffuseColor = vec4(texture(map, vPos.xz * repeatScale).rgb, 1.0);
           // vec4 diffuseColor = vec4(texture(mapArray, vec3(vPos.xz * repeatScale, 1)).rgb , 1.0);
@@ -231,23 +264,30 @@ export class TerrainMaterial extends MeshStandardMaterial {
         "#include <normal_fragment_maps>",
         `
         #ifdef USE_NORMALMAP
-              vec3 texelNormal = normalize(getTriPlanarTexture( normalArray ).xyz) * 2.0 - 1.0;
+              vec2 posBlend = pos.xy;
+              if (blending.x >= blending.y && blending.x >= blending.z) {
+                posBlend = pos.zy;
+              } else if (blending.y >= blending.x && blending.y >= blending.z) {
+                posBlend = pos.xz;
+              }
+
+              vec3 texelNormal = normalize(getTriPlanarTexture( normalArray, pos, blending ).xyz) * 2.0 - 1.0;
               texelNormal.xy *= normalScale;
 
               vec3 q0 = dFdx( - vViewPosition.xyz );
               vec3 q1 = dFdy( - vViewPosition.xyz );
-              vec2 st0 = dFdx( vec2(0,0) );
-              vec2 st1 = dFdy( vec2(0,0) );
+              vec2 st0 = dFdx( posBlend );
+              vec2 st1 = dFdy( posBlend );
 
               vec3 N = normalize( vNormal ); // normalized
 
               vec3 q1perp = cross( q1, N );
               vec3 q0perp = cross( N, q0 );
 
-              // vec3 T = q1perp * st0.x + q0perp * st1.x;
-              vec3 T = q1perp;
-              // vec3 B = q1perp * st0.y + q0perp * st1.y;
-              vec3 B = q0perp;
+              vec3 T = q1perp * st0.x + q0perp * st1.x;
+              // vec3 T = q1perp;
+              vec3 B = q1perp * st0.y + q0perp * st1.y;
+              // vec3 B = q0perp;
 
               float det = max( dot( T, T ), dot( B, B ) );
               float scale = ( det == 0.0 ) ? 0.0 : inversesqrt( det );
@@ -255,9 +295,9 @@ export class TerrainMaterial extends MeshStandardMaterial {
               mat3 tbn = mat3( T * scale, B * scale, N );
 
               normal = normalize( tbn * texelNormal );
-              // normal = normalize( tbn * vec3(1,1,1) );
+              normal = normalize( tbn * vec3(1,1,1) );
               // diffuseColor = vec4(normal, 1.0);
-              // normal = normalize( vNormal );
+              normal = normalize( vNormal + texelNormal );
       #endif
           `
       );
@@ -268,7 +308,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
           #ifdef USE_AOMAP
 
               // reads channel R, compatible with a combined OcclusionRoughnessMetallic (RGB) texture
-              float ambientOcclusion = ( getTriPlanarTexture( aoArray ).r - 1.0 ) * aoMapIntensity + 1.0;
+              float ambientOcclusion = ( getTriPlanarTexture( aoArray, pos, blending ).r - 1.0 ) * aoMapIntensity + 1.0;
 
               reflectedLight.indirectDiffuse *= ambientOcclusion;
 
@@ -299,7 +339,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
           #ifdef USE_ROUGHNESSMAP
 
-              vec3 texelRoughness = getTriPlanarTexture( roughnessArray ).rgb;
+              vec3 texelRoughness = getTriPlanarTexture( roughnessArray, pos, blending ).rgb;
 
               // reads channel G, compatible with a combined OcclusionRoughnessMetallic (RGB) texture
               roughnessFactor *= texelRoughness.r;
@@ -315,7 +355,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
           // #ifdef USE_METALNESSMAP
 
-          //   vec4 texelMetalness = getTriPlanarTexture( metalnessArray ).rgba;
+          //   vec4 texelMetalness = getTriPlanarTexture( metalnessArray, pos, blending ).rgba;
 
           //   // reads channel B, compatible with a combined OcclusionRoughnessMetallic (RGB) texture
           //   metalnessFactor *= texelMetalness.r;
@@ -395,7 +435,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
         `materials/${resolution}/${mapType}.bin`,
         {
           headers: {
-            "Content-Type": "application/octet-stream"
+            "Content-Type": "application/octet-stream",
           },
         }
       );
@@ -440,7 +480,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
   }
 }
 
-function dummyDataArrayTexture() {
+function dummyDataArrayTexture(color_string: string) {
   // Define texture dimensions
   const width = 256;
   const height = 256;
@@ -453,7 +493,7 @@ function dummyDataArrayTexture() {
 
   // Fill each layer with a different color for testing
   for (let layer = 0; layer < layers; layer++) {
-    const color = new Color("grey");
+    const color = new Color(color_string);
     // if (layer === 0) color.set("red");
     // else if (layer === 1) color.set("green");
     // else if (layer === 2) color.set("blue");

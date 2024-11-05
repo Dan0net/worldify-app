@@ -8,11 +8,11 @@ export class Lights extends Object3D {
         super();
         
         //lights
-        const skyColor = 0xffffff;  // light blue
-        const groundColor = 0xffffff;  // brownish orange
-        const Hintensity = 0.5;
-        const Hlight = new HemisphereLight(skyColor, groundColor, Hintensity);
-        this.add(Hlight);
+        // const skyColor = 0xffffff;  // light blue
+        // const groundColor = 0xffffff;  // brownish orange
+        // const Hintensity = 0.01;
+        // const Hlight = new HemisphereLight(skyColor, groundColor, Hintensity);
+        // this.add(Hlight);
 
         const Dcolor = 0xFFFFFF;
         const Dintensity = 3.0;
@@ -46,6 +46,7 @@ export class Lights extends Object3D {
 			skyBoxTexture.colorSpace = SRGBColorSpace;
 			this.scene.background = skyBoxTexture;
 			this.scene.environment = skyBoxTexture;
+            this.scene.environmentIntensity = 0.1
 		});
     }
 }
