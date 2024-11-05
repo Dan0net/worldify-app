@@ -51,7 +51,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
     const _this = this;
     const params = {
-      roughness: 0.5,
+      roughness: 0.9,
       metalness: 0.25,
       normalScale: -1,
     };

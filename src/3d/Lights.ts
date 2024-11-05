@@ -1,4 +1,5 @@
 import { AmbientLight, CameraHelper, DirectionalLight, EquirectangularReflectionMapping, HemisphereLight, Object3D, Scene, SRGBColorSpace, TextureLoader, Vector3 } from "three";
+import { getGUI } from "../utils/gui";
 
 export class Lights extends Object3D {
     private shadowLightOffset = new Vector3(-75, 100, 75);
@@ -46,7 +47,6 @@ export class Lights extends Object3D {
 			skyBoxTexture.colorSpace = SRGBColorSpace;
 			this.scene.background = skyBoxTexture;
 			this.scene.environment = skyBoxTexture;
-            this.scene.environmentIntensity = 0.1
 		});
     }
 }
