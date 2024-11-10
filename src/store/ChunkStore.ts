@@ -10,6 +10,7 @@ type ChunkStore = {
   chunkData: {
     [key: string]: ChunkData
   };
+  storeChunksLocally: boolean,
   addChunkData: (key: string, chunkData: ChunkData) => void;
   // removeChunkData: (key: string) => void;
 };
@@ -20,6 +21,7 @@ export const useChunkStore = create<ChunkStore>()(
       currentChunk: null,
       chunkDataKeys: [],
       chunkData: {},
+      storeChunksLocally: false,
       addChunkData: (key, chunkData) =>
         set((state) => {
           state.chunkData[key] = chunkData;

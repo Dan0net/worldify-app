@@ -2,8 +2,12 @@ import { Box3, LineSegments, Mesh, Object3D, TypedArray, Vector3 } from "three";
 import { ChunkCoord } from "./interfaces";
 import { TERRAIN_GRID_SIZE_MARGIN, TERRAIN_SCALE } from "./constants";
 
-export function chunkCoordsToKey(chunkCoords: ChunkCoord): string {
-  return `${chunkCoords.x}:${chunkCoords.y}:${chunkCoords.z}`;
+export function chunkCoordsToKey(chunkCoord: ChunkCoord): string {
+  return `${chunkCoord.x}:${chunkCoord.y}:${chunkCoord.z}`;
+}
+
+export function chunkCoordsToSurfaceKey(chunkCoord: ChunkCoord): string {
+  return `${chunkCoord.x}:${chunkCoord.z}`;
 }
 
 export function chunkKeyToCord(chunkKey: string): ChunkCoord {

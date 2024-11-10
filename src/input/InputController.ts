@@ -5,12 +5,6 @@ import { useSettingStore } from "../store/SettingStore";
 export class InputController {
   private unsubGameStore: () => void;
 
-  public fwdPressed = false;
-  public bkdPressed = false;
-  public lftPressed = false;
-  public rgtPressed = false;
-  public spacePressed = false;
-
   private listeners = {};
 
   private _menuStatus = useGameStore.getState().menuStatus;

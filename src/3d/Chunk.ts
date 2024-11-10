@@ -23,7 +23,7 @@ import {
   worldToChunkPosition,
 } from "../utils/functions";
 
-import { TERRAIN_SCALE, TERRAIN_SIZE } from "../utils/constants";
+import { TERRAIN_GRID_SIZE_OG, TERRAIN_SCALE, TERRAIN_SIZE } from "../utils/constants";
 import { BuildPreset } from "../builder/BuildPresets";
 import { VEC2_0, VEC3_0 } from "../utils/vector_utils";
 import { MatterialPallet } from "../material/MaterialPallet";
@@ -40,6 +40,8 @@ export class Chunk extends Object3D {
   private _gridCell: Vector3 = new Vector3();
   private isDefaultMeshTemp = false;
 
+  public heights;
+
   constructor(private chunkData: ChunkData) {
     super();
     this.chunkKey = chunkData.id;
@@ -49,6 +51,9 @@ export class Chunk extends Object3D {
 
     this.add(this.mesh);
     this.add(this.meshTemp);
+
+    if (chunkData.heights) this.heights = Array.from(atob(chunkData.heights).split(','));
+    // console.log(this.heights)
 
     this.scale.set(TERRAIN_SCALE, TERRAIN_SCALE, TERRAIN_SCALE);
 
@@ -86,6 +91,11 @@ export class Chunk extends Object3D {
       this.meshTemp.geometry.copy(this.mesh.geometry);
       this.isDefaultMeshTemp = true;
     }
+  }
+
+  getHeight(x: number, z:number): number {
+    // console.log(this.heights)
+    return Number(this.heights[x + z * TERRAIN_GRID_SIZE_OG]) * TERRAIN_SCALE;
   }
 
   //           88

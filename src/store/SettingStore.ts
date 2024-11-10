@@ -30,7 +30,7 @@ type SettingStore = {
 export const useSettingStore = create<SettingStore>()(
   persist(
     (set) => ({
-      viewDistance: 2,
+      viewDistance: 1,
       mouseSensitivity: 0.0016,
       firstPerson: true,
       shadowsEnabled: true,
@@ -42,6 +42,7 @@ export const useSettingStore = create<SettingStore>()(
         move_left: 'KeyA',
         move_right: 'KeyD',
         jump: 'Space',
+        crouch: 'ControlLeft',
         run: 'ShiftLeft'
       },
       keys_impulse: {
@@ -57,6 +58,7 @@ export const useSettingStore = create<SettingStore>()(
         inventory: 'MouseRight',
         inventory2: 'Tab',
         debug: 'Slash',
+        fly_toggle: 'KeyF',
       }
     }),
     {

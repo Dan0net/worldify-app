@@ -6,6 +6,7 @@ import {
   MeshStandardMaterial,
   Object3D,
   Quaternion,
+  RGBA_ASTC_10x5_Format,
   Vector3,
 } from "three";
 import {
@@ -19,8 +20,13 @@ import { useChunkStore } from "../store/ChunkStore";
 import { useGameStore } from "../store/GameStore";
 import { usePlayerStore } from "../store/PlayerStore";
 import { useSettingStore } from "../store/SettingStore";
-import { TERRAIN_SIZE } from "../utils/constants";
-import { chunkCoordsToKey } from "../utils/functions";
+import {
+  CHUNK_RENDER_DELAY_MS,
+  CHUNKS_MAX_REQUEST,
+  TERRAIN_SIZE,
+  VIEW_DISTANCE_MAX,
+} from "../utils/constants";
+import { chunkCoordsToKey, chunkCoordsToSurfaceKey } from "../utils/functions";
 import { ChunkCoord, ChunkData } from "../utils/interfaces";
 import { Chunk } from "./Chunk";
 import { InputController } from "../input/InputController";
@@ -36,11 +42,17 @@ export class ChunkCoordinator extends Object3D {
 
   private chunkKeysVisible = new Set<string>();
   private chunkKeysCollidable = new Set<string>();
+  private chunkRenderQueue: Chunk[] = [];
+  private chunkRendering = false;
+  private chunkRenderTimer: ReturnType<typeof setTimeout> | null = null;
 
-  private debug = false;
+  private debug = true;
   private unsubPlayerStore: () => void;
 
   private currentChunkCoord: ChunkCoord;
+
+  private requestedSurfaceChunkCoords = new Set<string>();
+  private requestedChunkCoords = new Set<string>();
 
   constructor(private inputController: InputController) {
     super();
@@ -53,9 +65,14 @@ export class ChunkCoordinator extends Object3D {
           chunkCoord.y !== previousChunkCoord.y ||
           chunkCoord.z !== previousChunkCoord.z
         ) {
-          console.log(chunkCoord, previousChunkCoord);
+          console.log(
+            "updated player chunk coord",
+            chunkCoord,
+            previousChunkCoord
+          );
           this.currentChunkCoord = chunkCoord;
-          this.createChunksInRange();
+          this.loadSurfaceChunks();
+          this.loadChunksInRange();
           this.updateVisibleChunks();
         }
       }
@@ -64,7 +81,7 @@ export class ChunkCoordinator extends Object3D {
     const { chunkCoord } = usePlayerStore.getState();
 
     this.currentChunkCoord = chunkCoord;
-    this.createFirstChunk();
+    this.loadFirstSurfaceChunks();
 
     this.add(this.bvhVisuliser);
 
@@ -85,143 +102,287 @@ export class ChunkCoordinator extends Object3D {
     this.bvhVisuliser.visible = this.debug;
   }
 
-                                              
-  //  88                                    88  
-  //  88                                    88  
-  //  88                                    88  
-  //  88   ,adPPYba,   ,adPPYYba,   ,adPPYb,88  
-  //  88  a8"     "8a  ""     `Y8  a8"    `Y88  
-  //  88  8b       d8  ,adPPPPP88  8b       88  
-  //  88  "8a,   ,a8"  88,    ,88  "8a,   ,d88  
-  //  88   `"YbbdP"'   `"8bbdP"Y8   `"8bbdP"Y8  
-                                            
-  private async createFirstChunk() {
-    console.log('creating first chunk', this.currentChunkCoord)
-    const chunkData = await this.getOrLoadChunk(this.currentChunkCoord);
+  //  88                                    88
+  //  88                                    88
+  //  88                                    88
+  //  88   ,adPPYba,   ,adPPYYba,   ,adPPYb,88
+  //  88  a8"     "8a  ""     `Y8  a8"    `Y88
+  //  88  8b       d8  ,adPPPPP88  8b       88
+  //  88  "8a,   ,a8"  88,    ,88  "8a,   ,d88
+  //  88   `"YbbdP"'   `"8bbdP"Y8   `"8bbdP"Y8
 
-    if (chunkData) {
-      this.addChunk(chunkData);
-      // useGameStore.getState().setHasFirstChunkLoaded(true);
-    } else {
-      throw new Error("First chunk didnt load, panic!");
+  private async loadFirstSurfaceChunks() {
+    console.log("creating first chunk", this.currentChunkCoord);
+
+    const yCoordMax = await this.loadSurfaceChunks();
+
+    if (yCoordMax) {
+      usePlayerStore.getState().setFirstPlayerChunkCoord({
+        x: this.currentChunkCoord.x,
+        y: yCoordMax,
+        z: this.currentChunkCoord.z,
+      });
     }
-
-    console.log('created first chunk getting rest')
-    this.createChunksInRange();
-    // this.updateVisibleChunks(chunkCoord);
   }
 
-  private async createChunksInRange() {
+  private async loadSurfaceChunks(): Promise<number | void> {
+    const chunkCoords: ChunkCoord[] = [];
+
+    const currentSurfaceViewDistance =
+      usePlayerStore.getState().surfaceViewDistance;
+
+    for (
+      let x = -currentSurfaceViewDistance;
+      x <= currentSurfaceViewDistance;
+      x++
+    ) {
+      for (
+        let z = -currentSurfaceViewDistance;
+        z <= currentSurfaceViewDistance;
+        z++
+      ) {
+        const chunkCoord = {
+          x: this.currentChunkCoord.x + x,
+          y: this.currentChunkCoord.y,
+          z: this.currentChunkCoord.z + z,
+        };
+
+        const surfaceChunkKey = chunkCoordsToSurfaceKey(chunkCoord);
+
+        if (!this.requestedSurfaceChunkCoords.has(surfaceChunkKey)) {
+          this.requestedSurfaceChunkCoords.add(surfaceChunkKey);
+          chunkCoords.push(chunkCoord);
+        }
+
+        if (chunkCoords.length >= CHUNKS_MAX_REQUEST) break;
+      }
+      if (chunkCoords.length >= CHUNKS_MAX_REQUEST) break;
+    }
+    // console.log(chunkCoords);
+
+    if (chunkCoords.length === 0) {
+      const currentSurfaceViewDistance =
+        usePlayerStore.getState().surfaceViewDistance;
+
+      if (currentSurfaceViewDistance < VIEW_DISTANCE_MAX) {
+        usePlayerStore.setState({
+          surfaceViewDistance: currentSurfaceViewDistance + 1,
+        });
+        return this.loadSurfaceChunks();
+      }
+    }
+
+    if (chunkCoords.length === 0) return;
+
+    console.log(
+      "loading surface chunks, distance:",
+      currentSurfaceViewDistance,
+      "#:",
+      chunkCoords.length
+    );
+    const chunkDatas = await this.getOrLoadChunksXZ(chunkCoords);
+
+    let yCoordMax = -Infinity;
+    if (chunkDatas) {
+      chunkDatas.forEach((chunkData) => {
+        this.addChunk(chunkData, false);
+        yCoordMax = Math.max(chunkData.y, yCoordMax);
+      });
+    } else {
+      throw new Error("Chunks didnt load, panic!");
+    }
+
+    return yCoordMax;
+  }
+
+  private async loadChunksInRange() {
     const { viewDistance } = useSettingStore.getState();
-    
-    console.log('creating chunks in range', this.currentChunkCoord)
-    const chunksToLoad: ChunkCoord[] = [];
+
+    const chunkCoords: ChunkCoord[] = [];
 
     for (let x = -viewDistance; x <= viewDistance; x++) {
       for (let z = -viewDistance; z <= viewDistance; z++) {
-        for (let y = -2; y <= 2; y++) {
-          chunksToLoad.push({
+        for (let y = -viewDistance; y <= viewDistance; y++) {
+          const chunkCoord = {
             x: this.currentChunkCoord.x + x,
             y: this.currentChunkCoord.y + y,
             z: this.currentChunkCoord.z + z,
-          });
+          };
+
+          const chunkKey = chunkCoordsToKey(chunkCoord);
+
+          if (
+            !this.chunks.has(chunkKey) &&
+            !this.requestedChunkCoords.has(chunkKey)
+          ) {
+            this.requestedChunkCoords.add(chunkKey);
+            chunkCoords.push(chunkCoord);
+          }
         }
       }
     }
 
-    const chunkPromises = chunksToLoad.map((chunkCoords) =>
-      this.getOrLoadChunk(chunkCoords)
+    if (chunkCoords.length === 0) return;
+
+    console.log(
+      "loading chunks in range",
+      this.currentChunkCoord,
+      "#:",
+      chunkCoords.length
     );
+    const chunkDatas = await this.getOrLoadChunksXYZ(chunkCoords);
 
-    const chunkDatas = await Promise.all(chunkPromises);
-
-    // Add chunks to scene
-    for (const chunkData of chunkDatas) {
-      if (chunkData) this.addChunk(chunkData);
+    if (chunkDatas) {
+      chunkDatas.forEach((chunkData) => {
+        this.addChunk(chunkData, true);
+      });
+    } else {
+      throw new Error("Chunks didnt load, panic!");
     }
-    
 
-    // this.updateVisibleChunks();
+    // const chunkDatas = await Promise.all(chunkPromises);
+
+    // // Add chunks to scene
+    // for (const chunkData of chunkDatas) {
+    //   if (chunkData) this.addChunk(chunkData);
+    // }
   }
 
-  private async getOrLoadChunk(
-    chunkCoord: ChunkCoord
-  ): Promise<ChunkData | void> {
-    const chunkKey = chunkCoordsToKey(chunkCoord);
-
-    if (this.chunks.has(chunkKey) || this.pendingRequests.has(chunkKey))
-      return Promise.resolve();
-
-    const chunkDatas = useChunkStore.getState().chunkData;
-    // console.log(chunkKey, Object.keys(chunkDatas))
-    if (chunkKey in chunkDatas) {
-      const existingChunk = chunkDatas[chunkKey];
-      if (existingChunk) {
-        console.log("loading chunk from storage", chunkCoord);
-        return existingChunk;
-      }
-    }
-
-    // console.log("requesting chunk from api", chunkCoord);
+  private async getOrLoadChunksXZ(
+    chunkCoords: ChunkCoord[]
+  ): Promise<ChunkData[] | void> {
     const chunkPromise = this.api
-      .getChunk(chunkCoord)
-      .then((chunkData) => {
-        return chunkData;
-      })
-      .finally(() => {
-        // Remove from pendingRequests after completion
-        this.pendingRequests.delete(chunkKey);
+      .getChunksXZ(chunkCoords)
+      .then((chunkDatas) => {
+        return chunkDatas;
       });
-
-    this.pendingRequests.set(chunkKey, chunkPromise);
 
     return await chunkPromise;
   }
 
-                                        
-  //                      88           88  
-  //                      88           88  
-  //                      88           88  
-  // ,adPPYYba,   ,adPPYb,88   ,adPPYb,88  
-  // ""     `Y8  a8"    `Y88  a8"    `Y88  
-  // ,adPPPPP88  8b       88  8b       88  
-  // 88,    ,88  "8a,   ,d88  "8a,   ,d88  
-  // `"8bbdP"Y8   `"8bbdP"Y8   `"8bbdP"Y8  
-                                        
-                                        
+  private async getOrLoadChunksXYZ(
+    chunkCoords: ChunkCoord[]
+  ): Promise<ChunkData[] | void> {
+    const chunkPromise = this.api
+      .getChunksXYZ(chunkCoords)
+      .then((chunkData) => {
+        return chunkData;
+      });
 
-  private addChunk(chunkData: ChunkData, updateStorage = false) {
+    return await chunkPromise;
+  }
+
+  //                      88           88
+  //                      88           88
+  //                      88           88
+  // ,adPPYYba,   ,adPPYb,88   ,adPPYb,88
+  // ""     `Y8  a8"    `Y88  a8"    `Y88
+  // ,adPPPPP88  8b       88  8b       88
+  // 88,    ,88  "8a,   ,d88  "8a,   ,d88
+  // `"8bbdP"Y8   `"8bbdP"Y8   `"8bbdP"Y8
+
+  private addChunk(chunkData: ChunkData, renderPriority = false): Chunk | void {
     const chunkKey = chunkCoordsToKey({
       x: chunkData.x,
       y: chunkData.y,
       z: chunkData.z,
     });
+
     // console.log('adding ', chunkKey)
 
     // if (updateStorage) useChunkStore.getState().addChunkData(chunkKey, chunkData);
 
+    if (this.chunks.has(chunkKey)) {
+      console.log("already exists, dropping", chunkKey);
+      return;
+    }
+
     const chunk = new Chunk(chunkData);
     this.chunks.set(chunkKey, chunk);
 
+    useChunkStore.setState({
+      chunkDataKeys: Array.from(this.chunks.keys()),
+    });
+
+    // chunk.renderMesh(true).then(() => {
+    //   this.updateVisibleChunks();
+    // });
+
+    if (renderPriority) {
+      this.chunkRenderQueue.unshift(chunk);
+    } else {
+      this.chunkRenderQueue.push(chunk);
+    }
+
+    if (!this.chunkRendering) this.startChunkRendering();
+
+    return chunk;
+  }
+
+  //                                                88
+  //                                                88
+  //                                                88
+  //  8b,dPPYba,   ,adPPYba,  8b,dPPYba,    ,adPPYb,88   ,adPPYba,  8b,dPPYba,
+  //  88P'   "Y8  a8P_____88  88P'   `"8a  a8"    `Y88  a8P_____88  88P'   "Y8
+  //  88          8PP"""""""  88       88  8b       88  8PP"""""""  88
+  //  88          "8b,   ,aa  88       88  "8a,   ,d88  "8b,   ,aa  88
+  //  88           `"Ybbd8"'  88       88   `"8bbdP"Y8   `"Ybbd8"'  88
+
+  private startChunkRendering() {
+    this.chunkRendering = true;
+    this.renderNextChunk();
+  }
+
+  private stopChunkRendering() {
+    if (this.chunkRenderTimer) clearTimeout(this.chunkRenderTimer);
+    this.chunkRendering = false;
+  }
+
+  private renderNextChunk() {
+    const chunk = this.chunkRenderQueue.shift();
+
+    if (!chunk) {
+      this.chunkRendering = false;
+      return;
+    }
+
     chunk.renderMesh(true).then(() => {
       this.updateVisibleChunks();
+      this.chunkRenderTimer = setTimeout(
+        () => this.renderNextChunk(),
+        CHUNK_RENDER_DELAY_MS
+      );
     });
   }
 
-                                                                          
-  //                                     88                                  
-  //                                     88                ,d                
-  //                                     88                88                
-  //  88       88  8b,dPPYba,    ,adPPYb,88  ,adPPYYba,  MM88MMM  ,adPPYba,  
-  //  88       88  88P'    "8a  a8"    `Y88  ""     `Y8    88    a8P_____88  
-  //  88       88  88       d8  8b       88  ,adPPPPP88    88    8PP"""""""  
-  //  "8a,   ,a88  88b,   ,a8"  "8a,   ,d88  88,    ,88    88,   "8b,   ,aa  
-  //   `"YbbdP'Y8  88`YbbdP"'    `"8bbdP"Y8  `"8bbdP"Y8    "Y888  `"Ybbd8"'  
-  //               88                                                        
-  //               88                                                        
+  //                                     88
+  //                                     88                ,d
+  //                                     88                88
+  //  88       88  8b,dPPYba,    ,adPPYb,88  ,adPPYYba,  MM88MMM  ,adPPYba,
+  //  88       88  88P'    "8a  a8"    `Y88  ""     `Y8    88    a8P_____88
+  //  88       88  88       d8  8b       88  ,adPPPPP88    88    8PP"""""""
+  //  "8a,   ,a88  88b,   ,a8"  "8a,   ,d88  88,    ,88    88,   "8b,   ,aa
+  //   `"YbbdP'Y8  88`YbbdP"'    `"8bbdP"Y8  `"8bbdP"Y8    "Y888  `"Ybbd8"'
+  //               88
+  //               88
 
   async updateVisibleChunks() {
     if (!this.currentChunkCoord) return;
+    // console.log("visible chunk update");
+
+    if (this.chunkRenderQueue.length === 0) {
+      const currentSurfaceViewDistance =
+        usePlayerStore.getState().surfaceViewDistance;
+
+      if (currentSurfaceViewDistance < VIEW_DISTANCE_MAX) {
+        this.loadSurfaceChunks();
+      }
+
+      if (!useGameStore.getState().hasFirstChunkLoaded) {
+        console.log("starting player");
+        useGameStore.getState().setHasFirstChunkLoaded(true);
+      }
+    }
 
     let colliderChanged = false;
 
@@ -237,20 +398,21 @@ export class ChunkCoordinator extends Object3D {
       );
       const d = _vec.length();
 
-      if (d === 0) {
-        useGameStore.getState().setHasFirstChunkLoaded(true);
-      }
+      // if (d === 0) {
+      //   useGameStore.getState().setHasFirstChunkLoaded(true);
+      // }
+
       if (d < 2) {
         // within collider range
         if (!this.chunkKeysCollidable.has(key)) {
-      // console.log(chunkCoord, chunk.position)
-      // add to collider
+          // console.log(chunkCoord, chunk.position)
+          // add to collider
           this.chunkKeysCollidable.add(key);
           this.castableChunkMeshs.attach(chunk.mesh);
           chunk.copyTemp();
           this.attach(chunk.meshTemp);
           colliderChanged = true;
-          // console.log(chunkCoord, chunk.mesh.position)
+          // console.log(chunkCoord, chunk.mesh.position);
         }
 
         if (this.chunkKeysVisible.has(key)) {
@@ -274,18 +436,22 @@ export class ChunkCoordinator extends Object3D {
           // add to visible
           this.chunkKeysVisible.add(key);
           this.attach(chunk.mesh);
-          const v = new Vector3()
-          chunk.mesh.getWorldPosition(v)
+          const v = new Vector3();
+          chunk.mesh.getWorldPosition(v);
           // console.log(chunkCoord, v)
         }
       }
     }
 
+    usePlayerStore.setState({
+      visibleChunks: this.chunkKeysVisible.size + this.chunkKeysCollidable.size,
+      collidableChunks: this.chunkKeysCollidable.size,
+    });
     if (colliderChanged) this.updateCollider();
   }
 
   updateCollider() {
-    console.log("collider update");
+    // console.log("collider update");
 
     const staticGenerator = new StaticGeometryGenerator(
       this.castableChunkMeshs
@@ -309,17 +475,15 @@ export class ChunkCoordinator extends Object3D {
     this.bvhVisuliser.visible = this.debug;
   }
 
-                                                            
-  //           88                                              
-  //           88                                              
-  //           88                                              
-  //   ,adPPYb,88  8b,dPPYba,  ,adPPYYba,  8b      db      d8  
-  //  a8"    `Y88  88P'   "Y8  ""     `Y8  `8b    d88b    d8'  
-  //  8b       88  88          ,adPPPPP88   `8b  d8'`8b  d8'   
-  //  "8a,   ,d88  88          88,    ,88    `8bd8'  `8bd8'    
-  //   `"8bbdP"Y8  88          `"8bbdP"Y8      YP      YP      
-                                                            
-                                                            
+  //           88
+  //           88
+  //           88
+  //   ,adPPYb,88  8b,dPPYba,  ,adPPYYba,  8b      db      d8
+  //  a8"    `Y88  88P'   "Y8  ""     `Y8  `8b    d88b    d8'
+  //  8b       88  88          ,adPPPPP88   `8b  d8'`8b  d8'
+  //  "8a,   ,d88  88          88,    ,88    `8bd8'  `8bd8'
+  //   `"8bbdP"Y8  88          `"8bbdP"Y8      YP      YP
+
   public drawToChunks(
     center: Vector3,
     inverseRotation: Quaternion,
@@ -372,8 +536,12 @@ export class ChunkCoordinator extends Object3D {
         );
 
         meshChanged = meshChanged || (_change && isPlacing);
-
-        if (_change && isPlacing) {
+        // console.log(_change)
+        if (
+          _change &&
+          isPlacing &&
+          useChunkStore.getState().storeChunksLocally
+        ) {
           this.saveChunk(chunk);
         }
       }

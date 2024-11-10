@@ -73,10 +73,18 @@ export class API {
     return this.authenticateUser(email, password, false);
   }
 
-  async getChunk(chunkCoord: ChunkCoord): Promise<ChunkData> {
+  async getChunksXYZ(chunkCoords: ChunkCoord[]): Promise<ChunkData[]> {
     return this.fetchJsonHandler(
-      `${this.apiUrl}/chunks/${chunkCoord.x}/${chunkCoord.y}/${chunkCoord.z}`,
-      null,
+      `${this.apiUrl}/chunks/xyz`,
+      chunkCoords,
+      false
+    );
+  }
+
+  async getChunksXZ(chunkCoords: ChunkCoord[]): Promise<ChunkData[]> {
+    return this.fetchJsonHandler(
+      `${this.apiUrl}/chunks/xz`,
+      chunkCoords,
       false
     );
   }

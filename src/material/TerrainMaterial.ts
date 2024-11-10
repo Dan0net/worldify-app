@@ -26,6 +26,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 export class TerrainMaterial extends MeshStandardMaterial {
   private static instance: TerrainMaterial | null = null;
   private _shader;
+  private textures;
 
   // constructor(textureArray: DataArrayTexture) {
   constructor() {
@@ -78,23 +79,22 @@ export class TerrainMaterial extends MeshStandardMaterial {
         _this.needsUpdate = true;
       });
 
+    this.setTextures(
+      dummyDataArrayTexture("white"),
+      dummyDataArrayTexture("white"),
+      dummyDataArrayTexture("white"),
+      dummyDataArrayTexture("white")
+    );
+
     this.needsUpdate = true;
 
     this.onBeforeCompile = (shader) => {
       this._shader = shader;
+      console.log(this._shader);
+      // console.log("c");
 
-      shader.uniforms.mapArray = {
-        value: dummyDataArrayTexture('white'),
-      };
-      shader.uniforms.normalArray = {
-        value: dummyDataArrayTexture('white'),
-      };
-      shader.uniforms.aoArray = {
-        value: dummyDataArrayTexture('white'),
-      };
-      shader.uniforms.roughnessArray = {
-        value: dummyDataArrayTexture('white'),
-      };
+      this.updateTextures();
+
       // shader.uniforms.metalnessArray = {
       //   value: dummyDataArrayTexture(),
       // };
@@ -366,25 +366,36 @@ export class TerrainMaterial extends MeshStandardMaterial {
     };
   }
 
-  public setTextures(textures) {
-    this._shader.uniforms.mapArray = {
-      value: textures["albedo"],
+  public setTextures(albedo, normal, ao, roughness) {
+    this.textures = {
+      albedo,
+      normal,
+      ao,
+      roughness,
     };
-    this._shader.uniforms.normalArray = {
-      value: textures["normal"],
-    };
-    this._shader.uniforms.aoArray = {
-      value: textures["ao"],
-    };
-    this._shader.uniforms.roughnessArray = {
-      value: textures["roughness"],
-    };
-    // this._shader.uniforms.metalnessArray = {
-    //   // value: textures["ao"],
-    //   // value: textures["metalness"],
-    // };
+  }
 
-    this.needsUpdate = true;
+  public updateTextures() {
+    if (this._shader) {
+      this._shader.uniforms.mapArray = {
+        value: this.textures["albedo"],
+      };
+      this._shader.uniforms.normalArray = {
+        value: this.textures["normal"],
+      };
+      this._shader.uniforms.aoArray = {
+        value: this.textures["ao"],
+      };
+      this._shader.uniforms.roughnessArray = {
+        value: this.textures["roughness"],
+      };
+      // this._shader.uniforms.metalnessArray = {
+      //   // value: textures["ao"],
+      //   // value: textures["metalness"],
+      // };
+
+      this.needsUpdate = true;
+    }
   }
 
   public static getInstance(textureArray?: DataArrayTexture): TerrainMaterial {
@@ -395,17 +406,31 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
       const material = new TerrainMaterial();
       // const material = new MeshStandardMaterial();
+      // console.log("b");
 
       TerrainMaterial.instance = material;
 
       this.loadDataArrayTextures("low").then(
         ({ textures, metadata, materialIndices }) => {
-          material.setTextures(textures);
+          // console.log("a");
+          material.setTextures(
+            textures["albedo"],
+            textures["normal"],
+            textures["ao"],
+            textures["roughness"]
+          );
+          material.updateTextures();
 
           this.loadDataArrayTextures("high").then(
             ({ textures, metadata, materialIndices }) => {
-              material.setTextures(textures);
-              // material.needsUpdate = true;
+              material.setTextures(
+                textures["albedo"],
+                textures["normal"],
+                textures["ao"],
+                textures["roughness"]
+              );
+
+              material.updateTextures();
             }
           );
         }
@@ -443,7 +468,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
       // Create the typed array from the ArrayBuffer
       let data = new Uint8Array(arrayBuffer);
-      console.log(mapType, width * height * layers * channelSize, data.length);
+      // console.log(mapType, width * height * layers * channelSize, data.length);
 
       // Determine the texture format
       let format;
@@ -455,7 +480,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
       } else if (channelSize === 1) {
         format = RedFormat;
       }
-      console.log(mapType, channelSize, format);
+      // console.log(mapType, channelSize, format);
 
       // Create the DataArrayTexture
       const texture = new DataArrayTexture(data, width, height, layers);

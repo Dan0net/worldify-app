@@ -13,7 +13,12 @@ function UI() {
         case MenuStatus.Playing:
           return <HudUI />;
         case MenuStatus.Inventory:
-          return <InventoryUI />;
+          return (
+            <>
+              <HudUI />
+              <InventoryUI />
+            </>
+          );
       }
     }
   };
