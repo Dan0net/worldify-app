@@ -46,13 +46,15 @@ export class ChunkCoordinator extends Object3D {
   private chunkRendering = false;
   private chunkRenderTimer: ReturnType<typeof setTimeout> | null = null;
 
-  private debug = true;
+  private debug = false;
   private unsubPlayerStore: () => void;
 
-  private currentChunkCoord: ChunkCoord;
+  private _chunkCoord: ChunkCoord;
 
   private requestedSurfaceChunkCoords = new Set<string>();
   private requestedChunkCoords = new Set<string>();
+
+  private forceRegenerateChunks = true;
 
   constructor(private inputController: InputController) {
     super();
@@ -60,17 +62,13 @@ export class ChunkCoordinator extends Object3D {
     this.unsubPlayerStore = usePlayerStore.subscribe(
       (state) => state.chunkCoord,
       (chunkCoord, previousChunkCoord) => {
-        if (
-          chunkCoord.x !== previousChunkCoord.x ||
-          chunkCoord.y !== previousChunkCoord.y ||
-          chunkCoord.z !== previousChunkCoord.z
-        ) {
-          console.log(
-            "updated player chunk coord",
-            chunkCoord,
-            previousChunkCoord
-          );
-          this.currentChunkCoord = chunkCoord;
+        if (chunkCoord !== this._chunkCoord) {
+          // console.log(
+          //   "updated player chunk coord",
+          //   chunkCoord,
+          //   previousChunkCoord
+          // );
+          this._chunkCoord = chunkCoord;
           this.loadSurfaceChunks();
           this.loadChunksInRange();
           this.updateVisibleChunks();
@@ -80,7 +78,7 @@ export class ChunkCoordinator extends Object3D {
 
     const { chunkCoord } = usePlayerStore.getState();
 
-    this.currentChunkCoord = chunkCoord;
+    this._chunkCoord = chunkCoord;
     this.loadFirstSurfaceChunks();
 
     this.add(this.bvhVisuliser);
@@ -112,15 +110,15 @@ export class ChunkCoordinator extends Object3D {
   //  88   `"YbbdP"'   `"8bbdP"Y8   `"8bbdP"Y8
 
   private async loadFirstSurfaceChunks() {
-    console.log("creating first chunk", this.currentChunkCoord);
+    console.log("creating first chunk", this._chunkCoord);
 
     const yCoordMax = await this.loadSurfaceChunks();
 
     if (yCoordMax) {
       usePlayerStore.getState().setFirstPlayerChunkCoord({
-        x: this.currentChunkCoord.x,
+        x: this._chunkCoord.x,
         y: yCoordMax,
-        z: this.currentChunkCoord.z,
+        z: this._chunkCoord.z,
       });
     }
   }
@@ -142,9 +140,9 @@ export class ChunkCoordinator extends Object3D {
         z++
       ) {
         const chunkCoord = {
-          x: this.currentChunkCoord.x + x,
-          y: this.currentChunkCoord.y,
-          z: this.currentChunkCoord.z + z,
+          x: this._chunkCoord.x + x,
+          y: this._chunkCoord.y,
+          z: this._chunkCoord.z + z,
         };
 
         const surfaceChunkKey = chunkCoordsToSurfaceKey(chunkCoord);
@@ -204,9 +202,9 @@ export class ChunkCoordinator extends Object3D {
       for (let z = -viewDistance; z <= viewDistance; z++) {
         for (let y = -viewDistance; y <= viewDistance; y++) {
           const chunkCoord = {
-            x: this.currentChunkCoord.x + x,
-            y: this.currentChunkCoord.y + y,
-            z: this.currentChunkCoord.z + z,
+            x: this._chunkCoord.x + x,
+            y: this._chunkCoord.y + y,
+            z: this._chunkCoord.z + z,
           };
 
           const chunkKey = chunkCoordsToKey(chunkCoord);
@@ -226,7 +224,7 @@ export class ChunkCoordinator extends Object3D {
 
     console.log(
       "loading chunks in range",
-      this.currentChunkCoord,
+      this._chunkCoord,
       "#:",
       chunkCoords.length
     );
@@ -252,7 +250,7 @@ export class ChunkCoordinator extends Object3D {
     chunkCoords: ChunkCoord[]
   ): Promise<ChunkData[] | void> {
     const chunkPromise = this.api
-      .getChunksXZ(chunkCoords)
+      .getChunksXZ(chunkCoords, this.forceRegenerateChunks)
       .then((chunkDatas) => {
         return chunkDatas;
       });
@@ -264,7 +262,7 @@ export class ChunkCoordinator extends Object3D {
     chunkCoords: ChunkCoord[]
   ): Promise<ChunkData[] | void> {
     const chunkPromise = this.api
-      .getChunksXYZ(chunkCoords)
+      .getChunksXYZ(chunkCoords, this.forceRegenerateChunks)
       .then((chunkData) => {
         return chunkData;
       });
@@ -347,11 +345,14 @@ export class ChunkCoordinator extends Object3D {
     }
 
     chunk.renderMesh(true).then(() => {
-      this.updateVisibleChunks();
-      this.chunkRenderTimer = setTimeout(
-        () => this.renderNextChunk(),
-        CHUNK_RENDER_DELAY_MS
-      );
+      chunk.renderLiquidMesh().then(() => {
+        this.attach(chunk.meshLiquid);
+        this.updateVisibleChunks();
+        this.chunkRenderTimer = setTimeout(
+          () => this.renderNextChunk(),
+          CHUNK_RENDER_DELAY_MS
+        );
+      });
     });
   }
 
@@ -367,7 +368,7 @@ export class ChunkCoordinator extends Object3D {
   //               88
 
   async updateVisibleChunks() {
-    if (!this.currentChunkCoord) return;
+    if (!this._chunkCoord) return;
     // console.log("visible chunk update");
 
     if (this.chunkRenderQueue.length === 0) {
@@ -392,9 +393,9 @@ export class ChunkCoordinator extends Object3D {
 
       const chunkCoord = chunk.chunkCoord;
       _vec.set(
-        chunkCoord.x - this.currentChunkCoord.x,
-        chunkCoord.y - this.currentChunkCoord.y,
-        chunkCoord.z - this.currentChunkCoord.z
+        chunkCoord.x - this._chunkCoord.x,
+        chunkCoord.y - this._chunkCoord.y,
+        chunkCoord.z - this._chunkCoord.z
       );
       const d = _vec.length();
 
@@ -409,6 +410,7 @@ export class ChunkCoordinator extends Object3D {
           // add to collider
           this.chunkKeysCollidable.add(key);
           this.castableChunkMeshs.attach(chunk.mesh);
+          // this.attach(chunk.meshLiquid);
           chunk.copyTemp();
           this.attach(chunk.meshTemp);
           colliderChanged = true;
@@ -436,6 +438,7 @@ export class ChunkCoordinator extends Object3D {
           // add to visible
           this.chunkKeysVisible.add(key);
           this.attach(chunk.mesh);
+          // this.attach(chunk.meshLiquid);
           const v = new Vector3();
           chunk.mesh.getWorldPosition(v);
           // console.log(chunkCoord, v)
@@ -537,11 +540,7 @@ export class ChunkCoordinator extends Object3D {
 
         meshChanged = meshChanged || (_change && isPlacing);
         // console.log(_change)
-        if (
-          _change &&
-          isPlacing &&
-          useChunkStore.getState().storeChunksLocally
-        ) {
+        if (_change && isPlacing) {
           this.saveChunk(chunk);
         }
       }
@@ -561,8 +560,9 @@ export class ChunkCoordinator extends Object3D {
     const chunkKey = chunk.chunkKey;
     const chunkData = chunk.toChunkData();
 
-    useChunkStore.getState().addChunkData(chunkKey, chunkData);
-    // this.chunkKeysToPost.add(chunkKey);
+    if (useChunkStore.getState().storeChunksLocally)
+      useChunkStore.getState().addChunkData(chunkKey, chunkData);
+
     const chunkCoord = chunk.chunkCoord;
     const grid = chunkData.grid;
 
@@ -576,7 +576,40 @@ export class ChunkCoordinator extends Object3D {
         // this.pendingRequests.delete(chunkKey);
       });
   }
+                                                                                                                              
+  //             88                                   88          ,ad8888ba,   88                                     88         
+  //             88                                   88         d8"'    `"8b  88                                     88         
+  //             88                                   88        d8'            88                                     88         
+  //  ,adPPYba,  88,dPPYba,    ,adPPYba,   ,adPPYba,  88   ,d8  88             88,dPPYba,   88       88  8b,dPPYba,   88   ,d8   
+  // a8"     ""  88P'    "8a  a8P_____88  a8"     ""  88 ,a8"   88             88P'    "8a  88       88  88P'   `"8a  88 ,a8"    
+  // 8b          88       88  8PP"""""""  8b          8888[     Y8,            88       88  88       88  88       88  8888[      
+  // "8a,   ,aa  88       88  "8b,   ,aa  "8a,   ,aa  88`"Yba,   Y8a.    .a8P  88       88  "8a,   ,a88  88       88  88`"Yba,   
+  //  `"Ybbd8"'  88       88   `"Ybbd8"'   `"Ybbd8"'  88   `Y8a   `"Y8888Y"'   88       88   `"YbbdP'Y8  88       88  88   `Y8a  
+                                                                                                                              
+                                                                                                                              
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+  //   ,ad8888ba,               88  88  888888888888                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          88   ad88888ba     d8'                        ad88888ba    ad88888ba                                                                        
+  //  d8"'    `"8b              88  88       88                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               88  d8"     "8b   d8'                        d8"     "8b  d8"     "8b                                                                       
+  // d8'                        88  88       88                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               88  Y8a     a8P  ""                          Y8a     a8P  Y8a     a8P                                                                       
+  // 88              ,adPPYba,  88  88       88  8b       d8  8b,dPPYba,    ,adPPYba,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 ,adPPYb,88   "Y8aaa8P"                                "Y8aaa8P"    "Y8aaa8P"                                                                        
+  // 88             a8P_____88  88  88       88  `8b     d8'  88P'    "8a  a8P_____88                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                a8"    `Y88   ,d8"""8b,                                ,d8"""8b,    ,d8"""8b,                                                                        
+  // Y8,            8PP"""""""  88  88       88   `8b   d8'   88       d8  8PP"""""""                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                8b       88  d8"     "8b                              d8"     "8b  d8"     "8b                                                                       
+  //  Y8a.    .a8P  "8b,   ,aa  88  88       88    `8b,d8'    88b,   ,a8"  "8b,   ,aa                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                "8a,   ,d88  Y8a     a8P                              Y8a     a8P  Y8a     a8P                                                                       
+  //   `"Y8888Y"'    `"Ybbd8"'  88  88       88      Y88'     88`YbbdP"'    `"Ybbd8"'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 `"8bbdP"Y8   "Y88888P"                                "Y88888P"    "Y88888P"                                                                        
+  //                                                 d8'      88                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+  //                                                d8'       88                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+  getGridType(worldPosition: Vector3): number | void {
+    const chunkCoord = worldPosition.clone().divideScalar(TERRAIN_SIZE).floor();
 
+    const chunkKey = chunkCoordsToKey({ x: chunkCoord.x, y: chunkCoord.y, z: chunkCoord.z })
+
+    const chunk = this.chunks.get(chunkKey);
+
+    if(chunk) {
+      return chunk.getGridType(worldPosition.clone());
+    }
+    return
+  }
   dispose() {
     this.unsubPlayerStore();
   }

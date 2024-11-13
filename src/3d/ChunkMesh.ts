@@ -31,8 +31,11 @@ export class ChunkMesh extends Mesh {
   public materials = new Float32Array();
   public lights = new Float32Array();
 
-  constructor() {
-    super(new BufferGeometry(), TerrainMaterial.getInstance());
+  constructor(private isTransparent = false) {
+    const material = isTransparent
+      ? TerrainMaterial.getTransparentInstance()
+      : TerrainMaterial.getInstance();
+    super(new BufferGeometry(), material);
 
     this.castShadow = true;
     this.receiveShadow = true;
@@ -47,7 +50,7 @@ export class ChunkMesh extends Mesh {
   //  88  "8a,   ,a8"  88,    ,88  "8a,   ,d88
   //  88   `"YbbdP"'   `"8bbdP"Y8   `"8bbdP"Y8
 
-  readGridFromString(chunkData: ChunkData) {
+  readSolidGridFromString(chunkData: ChunkData) {
     const _grid = base64ToUint16Array(chunkData.grid);
     // console.log(_grid);
     const grid = unpackGridArray(_grid);
@@ -56,9 +59,24 @@ export class ChunkMesh extends Mesh {
     this.materials = new Float32Array(grid.materials);
     this.lights = new Float32Array(grid.lights);
 
-    // console.log(this.weights[0], this.weights[30000]);
-    // console.log(this.materials[0], this.materials[30000]);
-    // console.log(this.lights[0], this.lights[30000]);
+    for (let i = 0; i < this.materials.length; i++) {
+      if (this.materials[i] == 47) this.weights[i] = -0.001;
+    }
+  }
+
+  readLiquidGridFromString(chunkData: ChunkData) {
+    const _grid = base64ToUint16Array(chunkData.grid);
+    // console.log(_grid);
+    const grid = unpackGridArray(_grid);
+
+    this.weights = decompressUint8ToFloat32(grid.weights, -0.5, 0.5, 5);
+    this.materials = new Float32Array(grid.materials);
+    this.lights = new Float32Array(grid.lights);
+
+    for (let i = 0; i < this.materials.length; i++) {
+      if (this.materials[i] != 47 && this.weights[i] > 0)
+        this.weights[i] = -0.001;
+    }
   }
 
   copyGridFromChunkMesh(chunkMesh: ChunkMesh) {
@@ -203,5 +221,19 @@ export class ChunkMesh extends Mesh {
     }
 
     return false;
+  }
+
+                                                                                            
+  //                          88  88  8b           d8            88                           
+  //                          88  88  `8b         d8'            88                           
+  //                          88  88   `8b       d8'             88                           
+  //   ,adPPYba,   ,adPPYba,  88  88    `8b     d8'  ,adPPYYba,  88  88       88   ,adPPYba,  
+  //  a8"     ""  a8P_____88  88  88     `8b   d8'   ""     `Y8  88  88       88  a8P_____88  
+  //  8b          8PP"""""""  88  88      `8b d8'    ,adPPPPP88  88  88       88  8PP"""""""  
+  //  "8a,   ,aa  "8b,   ,aa  88  88       `888'     88,    ,88  88  "8a,   ,a88  "8b,   ,aa  
+  //   `"Ybbd8"'   `"Ybbd8"'  88  88        `8'      `"8bbdP"Y8  88   `"YbbdP'Y8   `"Ybbd8"'  
+                                                                                            
+  getCellType(gridIndex: number) {
+    return this.materials[gridIndex];
   }
 }

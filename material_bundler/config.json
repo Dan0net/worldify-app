@@ -853,6 +853,17 @@
       "roughness": {
         "path": "grass4/Grass001_1K-PNG_Roughness.png"
       }
+    },
+    "water": {
+      "albedo": {
+        "path": "water/water.png"
+      },
+      "normal": {
+      },
+      "ao": {
+      },
+      "roughness": {
+      }
     }
   }
 }

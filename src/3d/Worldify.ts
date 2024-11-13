@@ -36,6 +36,7 @@ import {
 } from "three/examples/jsm/Addons.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 import { getGUI } from "../utils/gui";
+import { URI } from "../api/URI";
 
 export class Worldify {
   private canvas: HTMLCanvasElement;
@@ -53,6 +54,7 @@ export class Worldify {
   private player: Player;
   private chunkCoordinator: ChunkCoordinator;
   private builder: Builder;
+  private uri: URI;
 
   private stats: Stats;
 
@@ -197,6 +199,9 @@ export class Worldify {
 
     this.inputController = new InputController(this.canvas);
     // MatterialPallet.getPallet(); //warm up
+
+    // URI
+    this.uri = new URI();
 
     ///
 

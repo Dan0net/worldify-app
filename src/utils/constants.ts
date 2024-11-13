@@ -12,14 +12,14 @@ export const PHYSICS_STEPS = 5;
 export const INPUT_LIMIT_THROTTLE_MS = 16;
 
 export const CHUNK_RENDER_DELAY_MS = 10;
-export const CHUNKS_MAX_REQUEST = 26;
+export const CHUNKS_MAX_REQUEST = 27;
 
 export const TERRAIN_SCALE = 0.5;
 export const TERRAIN_GRID_SIZE_OG = 30;
 export const TERRAIN_GRID_SIZE_MARGIN = 32;
 export const TERRAIN_SIZE = TERRAIN_SCALE * TERRAIN_GRID_SIZE_OG;
 
-export const VIEW_DISTANCE_MAX = 4;
+export const VIEW_DISTANCE_MAX = 6;
 export const VIEW_DISTANCE_MIN = 0;
 
 export const BUILD_DISTANCE_MAX = 15;

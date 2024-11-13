@@ -25,11 +25,12 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 export class TerrainMaterial extends MeshStandardMaterial {
   private static instance: TerrainMaterial | null = null;
+  private static instanceTransparent: TerrainMaterial | null = null;
   private _shader;
   private textures;
 
   // constructor(textureArray: DataArrayTexture) {
-  constructor() {
+  constructor(isTransparent) {
     super({
       map: new Texture(),
       normalMap: new Texture(),
@@ -43,6 +44,8 @@ export class TerrainMaterial extends MeshStandardMaterial {
       metalness: 0.05,
       color: new Color(1, 0, 0),
       toneMapped: false,
+      transparent: isTransparent,
+      opacity: isTransparent ? 0.5 : 1.0,
       defines: {
         // 'USE_MAP': '',
         // 'USE_UV': '',
@@ -166,11 +169,11 @@ export class TerrainMaterial extends MeshStandardMaterial {
                   return normalize(t * t * (3.0 - 2.0 * t));
               }
 
-              vec3 getTriAxisSmoothBlend(sampler2DArray tex, vec2 pos, vec3 bary){
-                  return vec3(
-                      texture( tex, vec3(pos * repeatScale, int(vAdjusted.x)) ).rgb * bary.x +
-                      texture( tex, vec3(pos * repeatScale, int(vAdjusted.y)) ).rgb * bary.y +
-                      texture( tex, vec3(pos * repeatScale, int(vAdjusted.z)) ).rgb * bary.z
+              vec4 getTriAxisSmoothBlend(sampler2DArray tex, vec2 pos, vec3 bary){
+                  return vec4(
+                      texture( tex, vec3(pos * repeatScale, int(vAdjusted.x)) ).rgba * bary.x +
+                      texture( tex, vec3(pos * repeatScale, int(vAdjusted.y)) ).rgba * bary.y +
+                      texture( tex, vec3(pos * repeatScale, int(vAdjusted.z)) ).rgba * bary.z
                   );
               }
 
@@ -182,13 +185,14 @@ export class TerrainMaterial extends MeshStandardMaterial {
                   // vec3 smoothBary = getSmoothBary();
                   // vec3 smoothBary = vBary;
                   
-                  vec3 xaxis = getTriAxisSmoothBlend(tex, pos.zy, vBary);
+                  vec4 xaxis = getTriAxisSmoothBlend(tex, pos.zy, vBary);
 
-                  vec3 zaxis = getTriAxisSmoothBlend(tex, pos.xy, vBary);
+                  vec4 zaxis = getTriAxisSmoothBlend(tex, pos.xy, vBary);
 
-                  vec3 yaxis = getTriAxisSmoothBlend(tex, pos.xz, vBary);
+                  vec4 yaxis = getTriAxisSmoothBlend(tex, pos.xz, vBary);
 
-                  return vec4( xaxis * blending.x + yaxis * blending.y + zaxis * blending.z, 1.0 );
+                  // return vec4( xaxis * blending.x + yaxis * blending.y + zaxis * blending.z, 1.0 );
+                  return vec4( xaxis * blending.x + yaxis * blending.y + zaxis * blending.z );
               
               }
 
@@ -254,6 +258,8 @@ export class TerrainMaterial extends MeshStandardMaterial {
           vec3 pos = getPos();
           vec3 blending = getTriPlanarBlend( vNormal2 );
           vec4 diffuseColor =  vec4( getTriPlanarTexture(mapArray, pos, blending).rgb, opacity );
+          // vec4 diffuseColor =  vec4( getTriPlanarTexture(mapArray, pos, blending).rgba );
+          // diffuseColor.a = 1.0 - diffuseColor.a;
           // vec4 diffuseColor =  vec4(.5,.5,.5, 1.0);
           // vec4 diffuseColor = vec4(texture(map, vPos.xz * repeatScale).rgb, 1.0);
           // vec4 diffuseColor = vec4(texture(mapArray, vec3(vPos.xz * repeatScale, 1)).rgb , 1.0);
@@ -411,12 +417,12 @@ export class TerrainMaterial extends MeshStandardMaterial {
   public updateTextures() {
     if (this._shader) {
       this._shader.uniforms.mapArray = {
+        // value:       dummyDataArrayTexture("white"),
         value: this.textures["albedo"],
       };
       this._shader.uniforms.normalArray = {
         value: this.textures["normal"],
         // value:       dummyDataArrayTexture("white"),
-
       };
       this._shader.uniforms.aoArray = {
         value: this.textures["ao"],
@@ -439,11 +445,13 @@ export class TerrainMaterial extends MeshStandardMaterial {
       //   throw new Error('Texture array must be provided for the first initialization.');
       // }
 
-      const material = new TerrainMaterial();
+      const material = new TerrainMaterial(false);
+      const materialTransparent = new TerrainMaterial(true);
       // const material = new MeshStandardMaterial();
       // console.log("b");
 
       TerrainMaterial.instance = material;
+      TerrainMaterial.instanceTransparent = materialTransparent;
 
       this.loadDataArrayTextures("low").then(
         ({ textures, metadata, materialIndices }) => {
@@ -456,6 +464,14 @@ export class TerrainMaterial extends MeshStandardMaterial {
           );
           material.updateTextures();
 
+          materialTransparent.setTextures(
+            textures["albedo"],
+            textures["normal"],
+            textures["ao"],
+            textures["roughness"]
+          );
+          materialTransparent.updateTextures();
+
           this.loadDataArrayTextures("high").then(
             ({ textures, metadata, materialIndices }) => {
               material.setTextures(
@@ -466,12 +482,31 @@ export class TerrainMaterial extends MeshStandardMaterial {
               );
 
               material.updateTextures();
+
+              materialTransparent.setTextures(
+                textures["albedo"],
+                textures["normal"],
+                textures["ao"],
+                textures["roughness"]
+              );
+              materialTransparent.updateTextures();
             }
           );
         }
       );
     }
     return TerrainMaterial.instance;
+  }
+
+  public static getTransparentInstance(): TerrainMaterial {
+    if (!TerrainMaterial.instanceTransparent) {
+      const material = new TerrainMaterial(true);
+
+      //kick off loading?
+
+      TerrainMaterial.instanceTransparent = material;
+    }
+    return TerrainMaterial.instanceTransparent;
   }
 
   static async loadDataArrayTextures(resolution = "low") {
@@ -509,9 +544,6 @@ export class TerrainMaterial extends MeshStandardMaterial {
       let format;
       if (channelSize === 4) {
         format = RGBAFormat;
-      }
-      if (channelSize === 3) {
-        format = RGBFormat;
       } else if (channelSize === 1) {
         format = RedFormat;
       }

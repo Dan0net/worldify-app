@@ -15,7 +15,7 @@ export class API {
 
     if (auth) {
       const { jwtToken } = useSessionStore.getState();
-      if(!jwtToken) throw new Error('No valid login JWT Token')
+      if (!jwtToken) throw new Error("No valid login JWT Token");
 
       request.headers["Authorization"] = `Bearer ${jwtToken}`;
     }
@@ -23,7 +23,6 @@ export class API {
     if (body) {
       request["body"] = JSON.stringify(body);
     }
-
 
     try {
       const response = await fetch(uri, request);
@@ -73,18 +72,24 @@ export class API {
     return this.authenticateUser(email, password, false);
   }
 
-  async getChunksXYZ(chunkCoords: ChunkCoord[]): Promise<ChunkData[]> {
+  async getChunksXYZ(
+    chunkCoords: ChunkCoord[],
+    forceRegenerateChunks: boolean
+  ): Promise<ChunkData[]> {
     return this.fetchJsonHandler(
       `${this.apiUrl}/chunks/xyz`,
-      chunkCoords,
+      { chunkCoords, forceRegenerateChunks },
       false
     );
   }
 
-  async getChunksXZ(chunkCoords: ChunkCoord[]): Promise<ChunkData[]> {
+  async getChunksXZ(
+    chunkCoords: ChunkCoord[],
+    forceRegenerateChunks: boolean
+  ): Promise<ChunkData[]> {
     return this.fetchJsonHandler(
       `${this.apiUrl}/chunks/xz`,
-      chunkCoords,
+      { chunkCoords, forceRegenerateChunks },
       false
     );
   }
@@ -92,7 +97,7 @@ export class API {
   async postChunk(chunkCoord: ChunkCoord, grid: string): Promise<ChunkData> {
     return this.fetchJsonHandler(
       `${this.apiUrl}/chunks/${chunkCoord.x}/${chunkCoord.y}/${chunkCoord.z}`,
-      {grid}
+      { grid }
     );
   }
 }

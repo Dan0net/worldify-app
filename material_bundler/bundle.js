@@ -87,7 +87,7 @@ async function createDataArrayTextures(textureSize, outputPath) {
           });
       } else {
         // no image for this map type
-        // console.log('no map', mapType)
+        console.log('no map', material, mapType)
         image = await sharp({
           create: {
             width: textureSize,

@@ -41,7 +41,7 @@ export class Player extends Object3D {
   private tempMat = new Matrix4();
   private tempSegment = new Line3();
 
-  private flyMode = true;
+  private flyMode = false;
 
   private capsuleInfo = {
     radius: 0.5,
@@ -55,10 +55,15 @@ export class Player extends Object3D {
   private _menuStatus = useGameStore.getState().menuStatus;
   private unsubGameStore;
   private unsubPlayerStore;
+  private unsubPlayerStore2;
   private setPlayerChunkCoord = usePlayerStore.getState().setPlayerChunkCoord;
-  private _chunkCoord;
+  private _chunkCoord = usePlayerStore.getState().chunkCoord;
 
-  private firstPlayerPosition = new Vector3(8, 30, 8);
+  private firstPlayerPosition = new Vector3(
+    this._chunkCoord.x * TERRAIN_SIZE + 8,
+    this._chunkCoord.y * TERRAIN_SIZE + 8,
+    this._chunkCoord.z * TERRAIN_SIZE + 8
+  );
 
   constructor(
     private inputController: InputController,
@@ -82,13 +87,29 @@ export class Player extends Object3D {
     this.unsubPlayerStore = usePlayerStore.subscribe(
       (state) => state.firstPlayerChunkCoord,
       (chunkCoord, previousChunkCoord) => {
-        if (chunkCoord !== previousChunkCoord) {
-          console.log(chunkCoord, previousChunkCoord);
+        if (chunkCoord !== this._chunkCoord) {
+          console.log(chunkCoord, this._chunkCoord);
           const position = new Vector3(
             chunkCoord.x * TERRAIN_SIZE + 8,
-            chunkCoord.y * TERRAIN_SIZE,
+            chunkCoord.y * TERRAIN_SIZE + 8,
             chunkCoord.z * TERRAIN_SIZE + 8
           )
+          this.reset(position);
+        }
+      }
+    );
+
+    this.unsubPlayerStore = usePlayerStore.subscribe(
+      (state) => state.chunkCoord,
+      (chunkCoord, previousChunkCoord) => {
+        if (chunkCoord !== this._chunkCoord) {
+          console.log('chunk coord changes', chunkCoord, this._chunkCoord);
+          const position = new Vector3(
+            chunkCoord.x * TERRAIN_SIZE + 8,
+            chunkCoord.y * TERRAIN_SIZE + 8,
+            chunkCoord.z * TERRAIN_SIZE + 8
+          )
+          this._chunkCoord = chunkCoord;
           this.reset(position);
         }
       }
@@ -172,13 +193,19 @@ export class Player extends Object3D {
         this._chunkCoord.y !== chunkCoord.y ||
         this._chunkCoord.z !== chunkCoord.z
       ) {
-        this.setPlayerChunkCoord(chunkCoord);
+        console.log('chunk coord update', chunkCoord)
         this._chunkCoord = chunkCoord;
+        this.setPlayerChunkCoord(chunkCoord);
       }
     }
   }
 
+  checkChunkCellType() {
+    console.log(this.chunkCoordinator.getGridType(this.position));
+  }
+
   collisionUpdate(delta: number) {
+    this.checkChunkCellType()
     //TODO refector
     if (!this.flyMode) {
       if (this.playerIsOnGround) {
@@ -366,6 +393,6 @@ export class Player extends Object3D {
 
     this.camera.position.copy(this.position);
 
-    console.log(this.position);
+    // console.log(this.position);
   }
 }

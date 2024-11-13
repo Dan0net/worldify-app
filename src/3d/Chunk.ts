@@ -34,6 +34,7 @@ export class Chunk extends Object3D {
 
   public mesh = new ChunkMesh();
   public meshTemp = new ChunkMesh();
+  public meshLiquid = new ChunkMesh(true);
 
   public meshGenerated = false;
 
@@ -47,10 +48,13 @@ export class Chunk extends Object3D {
     this.chunkKey = chunkData.id;
     this.chunkCoord = { x: chunkData.x, y: chunkData.y, z: chunkData.z };
 
-    this.mesh.readGridFromString(chunkData);
+    this.mesh.readSolidGridFromString(chunkData);
+    this.meshLiquid.readLiquidGridFromString(chunkData);
 
     this.add(this.mesh);
     this.add(this.meshTemp);
+    this.add(this.meshLiquid);
+    // this.meshLiquid.visible = false;
 
     if (chunkData.heights) this.heights = Array.from(atob(chunkData.heights).split(','));
     // console.log(this.heights)
@@ -84,6 +88,10 @@ export class Chunk extends Object3D {
     if (isPlacing) this.meshGenerated = true;
 
     if (!isPlacing) this.isDefaultMeshTemp = false;
+  }
+
+  async renderLiquidMesh() {
+    this.meshLiquid.generateMeshData();
   }
 
   copyTemp() {
@@ -201,5 +209,25 @@ export class Chunk extends Object3D {
     );
     const a = Math.min(Math.max(d.x, d.y), 0.0) + d.max(VEC2_0).length();
     return -a;
+  }
+
+                                                                                  
+  //                          88  88  888888888888                                   
+  //                          88  88       88                                        
+  //                          88  88       88                                        
+  //   ,adPPYba,   ,adPPYba,  88  88       88  8b       d8  8b,dPPYba,    ,adPPYba,  
+  //  a8"     ""  a8P_____88  88  88       88  `8b     d8'  88P'    "8a  a8P_____88  
+  //  8b          8PP"""""""  88  88       88   `8b   d8'   88       d8  8PP"""""""  
+  //  "8a,   ,aa  "8b,   ,aa  88  88       88    `8b,d8'    88b,   ,a8"  "8b,   ,aa  
+  //   `"Ybbd8"'   `"Ybbd8"'  88  88       88      Y88'     88`YbbdP"'    `"Ybbd8"'  
+  //                                               d8'      88                       
+  //                                              d8'       88                       
+  getGridType(p: Vector3) {
+    worldToChunkPosition(p, this.position);
+    p.round();
+    const gridIndex = gridCellToIndex(p);
+    const cellValue = this.mesh.getCellType(gridIndex);
+    
+    return cellValue;
   }
 }

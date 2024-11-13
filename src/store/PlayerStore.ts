@@ -23,11 +23,11 @@ export const usePlayerStore = create<PlayerStore>()(
   subscribeWithSelector(
     // persist(
     (set) => ({
-      chunkCoord: {x: 0, y: 0, z: 0},
+      chunkCoord: {x: -3, y: 0, z: -4},
       visibleChunks: 0,
       collidableChunks: 0,
       surfaceViewDistance: 0,
-      firstPlayerChunkCoord: {x: 0, y: 0, z: 0},
+      firstPlayerChunkCoord: {x: -3, y: 0, z: -4},
       buildPreset: 0,
       buildMaterial: 0,
       setPlayerChunkCoord: (chunkCoord) => set({ chunkCoord }),
