@@ -34,13 +34,13 @@ export class TerrainMaterial extends MeshStandardMaterial {
       map: new Texture(),
       normalMap: new Texture(),
       normalMapType: ObjectSpaceNormalMap,
-      normalScale: new Vector2(-1, -1),
+      // normalScale: new Vector2(-1, -1),
       aoMap: new Texture(),
       roughnessMap: new Texture(),
-      roughness: 0.5,
+      roughness: 0.9,
       // metalnessMap: new Texture(),
       // roughness: 0.5,
-      metalness: 0.25,
+      metalness: 0.05,
       color: new Color(1, 0, 0),
       toneMapped: false,
       defines: {
@@ -53,7 +53,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
     const _this = this;
     const params = {
       roughness: 0.9,
-      metalness: 0.25,
+      metalness: 0.05,
       normalScale: -1,
     };
 
@@ -90,7 +90,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
     this.onBeforeCompile = (shader) => {
       this._shader = shader;
-      console.log(this._shader);
+      // console.log(this._shader);
       // console.log("c");
 
       this.updateTextures();
@@ -264,40 +264,73 @@ export class TerrainMaterial extends MeshStandardMaterial {
         "#include <normal_fragment_maps>",
         `
         #ifdef USE_NORMALMAP
-              vec2 posBlend = pos.xy;
-              if (blending.x >= blending.y && blending.x >= blending.z) {
-                posBlend = pos.zy;
-              } else if (blending.y >= blending.x && blending.y >= blending.z) {
-                posBlend = pos.xz;
-              }
+    vec3 normalSampleX = normalize(getTriAxisSmoothBlend(mapArray, pos.zy, vBary).xyz) * 2.0 - 1.0;
+    vec3 normalSampleY = normalize(getTriAxisSmoothBlend(mapArray, pos.xz, vBary).xyz) * 2.0 - 1.0;
+    vec3 normalSampleZ = normalize(getTriAxisSmoothBlend(mapArray, pos.xy, vBary).xyz) * 2.0 - 1.0;
+    
+    mat3 tbnX = mat3(
+        vec3(0, 0, 1),
+        vec3(0, 1, 0),
+        vec3(1, 0, 0)
+    );
+    mat3 tbnY = mat3(
+        vec3(1, 0, 0),
+        vec3(0, 0, 1),
+        vec3(0, 1, 0)
+    );
+    mat3 tbnZ = mat3(
+        vec3(1, 0, 0),
+        vec3(0, 1, 0),
+        vec3(0, 0, 1)
+    );
+
+    vec3 worldNormalX = tbnX * normalSampleX;
+    vec3 worldNormalY = tbnY * normalSampleY;
+    vec3 worldNormalZ = tbnZ * normalSampleZ;
+
+    vec3 blendedNormal = normalize(
+        worldNormalX * blending.x +
+        worldNormalY * blending.y +
+        worldNormalZ * blending.z
+    );
+
+    normal = normalize((normalMatrix * blendedNormal).xyz);
+
+              // vec2 posBlend = pos.xy;
+              // if (blending.x >= blending.y && blending.x >= blending.z) {
+              //   posBlend = pos.zy;
+              // } else if (blending.y >= blending.x && blending.y >= blending.z) {
+              //   posBlend = pos.xz;
+              // }
 
               vec3 texelNormal = normalize(getTriPlanarTexture( normalArray, pos, blending ).xyz) * 2.0 - 1.0;
               texelNormal.xy *= normalScale;
 
-              vec3 q0 = dFdx( - vViewPosition.xyz );
-              vec3 q1 = dFdy( - vViewPosition.xyz );
-              vec2 st0 = dFdx( posBlend );
-              vec2 st1 = dFdy( posBlend );
+              // vec3 q0 = dFdx( - vViewPosition.xyz );
+              // vec3 q1 = dFdy( - vViewPosition.xyz );
+              // vec2 st0 = dFdx( posBlend );
+              // vec2 st1 = dFdy( posBlend );
 
-              vec3 N = normalize( vNormal ); // normalized
+              // vec3 N = normalize( vNormal ); // normalized
 
-              vec3 q1perp = cross( q1, N );
-              vec3 q0perp = cross( N, q0 );
+              // vec3 q1perp = cross( q1, N );
+              // vec3 q0perp = cross( N, q0 );
 
-              vec3 T = q1perp * st0.x + q0perp * st1.x;
-              // vec3 T = q1perp;
-              vec3 B = q1perp * st0.y + q0perp * st1.y;
-              // vec3 B = q0perp;
+              // vec3 T = q1perp * st0.x + q0perp * st1.x;
+              // // vec3 T = q1perp;
+              // vec3 B = q1perp * st0.y + q0perp * st1.y;
+              // // vec3 B = q0perp;
 
-              float det = max( dot( T, T ), dot( B, B ) );
-              float scale = ( det == 0.0 ) ? 0.0 : inversesqrt( det );
+              // float det = max( dot( T, T ), dot( B, B ) );
+              // float scale = ( det == 0.0 ) ? 0.0 : inversesqrt( det );
 
-              mat3 tbn = mat3( T * scale, B * scale, N );
+              // mat3 tbn = mat3( T * scale, B * scale, N );
 
-              normal = normalize( tbn * texelNormal );
-              normal = normalize( tbn * vec3(1,1,1) );
-              // diffuseColor = vec4(normal, 1.0);
-              normal = normalize( vNormal + texelNormal );
+              // // normal = normalize( tbn * texelNormal );
+              // // normal = normalize( tbn );
+              // // diffuseColor = vec4(normal, 1.0);
+              normal = normalize( vNormal + (normalMatrix * texelNormal) );
+              // // normal = normalize( vNormal );
       #endif
           `
       );
@@ -382,6 +415,8 @@ export class TerrainMaterial extends MeshStandardMaterial {
       };
       this._shader.uniforms.normalArray = {
         value: this.textures["normal"],
+        // value:       dummyDataArrayTexture("white"),
+
       };
       this._shader.uniforms.aoArray = {
         value: this.textures["ao"],
