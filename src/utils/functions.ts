@@ -46,6 +46,21 @@ export function clamp(v: number, min: number, max: number) {
   return Math.min(Math.max(v, min), max);
 }
 
+const bytes = new ArrayBuffer(Float32Array.BYTES_PER_ELEMENT);
+const floatView = new Float32Array(bytes);
+const intView = new Uint32Array(bytes);
+const threehalfs = 1.5;
+
+export function Q_rsqrt(number) {
+  const x2 = number * 0.5;
+  floatView[0] = number;
+  intView[0] = 0x5f3759df - ( intView[0] >> 1 );
+  let y = floatView[0];
+  y = y * ( threehalfs - ( x2 * y * y ) );
+
+  return y;
+}
+
 // todo refactor to utils and make more efficient
 export function decompressUint8ToFloat32(
   uint8Array: Uint8Array,

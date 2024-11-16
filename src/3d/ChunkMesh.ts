@@ -136,6 +136,14 @@ export class ChunkMesh extends Mesh {
   }
 
   updateMesh(data) {
+    // TODO set usage type of bufferattributes if the draw is main mesh, or temp mesh
+    //     STATIC: The user will set the data once.
+    // DYNAMIC: The user will set the data occasionally.
+    // STREAM: The user will be changing the data after every use. Or almost every use.
+
+    // TODO check if bufferatrtributes are big enough before calling dispose on geometry to reuse exisiting buffers
+    // ie. if new buffer is smaller
+
     this.geometry.dispose();
 
     const { indices, vertices, adjusted, bary, light, lightIndices, normal } =
@@ -153,7 +161,7 @@ export class ChunkMesh extends Mesh {
     const indexBufferAttribute = new BufferAttribute(indices, 1);
     buffer.setIndex(indexBufferAttribute);
     indexBufferAttribute.needsUpdate = true;
-
+    
     const positionBufferAttribute = new Float32BufferAttribute(vertices, 3);
     buffer.setAttribute("position", positionBufferAttribute);
     positionBufferAttribute.needsUpdate = true;
@@ -183,7 +191,7 @@ export class ChunkMesh extends Mesh {
 
     // meshObjs.adjusted.set(adjusted)
 
-    buffer.computeBoundsTree();
+    buffer.computeBoundsTree(); // todo calc only when in range
 
     this.geometry = buffer;
   }
@@ -223,16 +231,15 @@ export class ChunkMesh extends Mesh {
     return false;
   }
 
-                                                                                            
-  //                          88  88  8b           d8            88                           
-  //                          88  88  `8b         d8'            88                           
-  //                          88  88   `8b       d8'             88                           
-  //   ,adPPYba,   ,adPPYba,  88  88    `8b     d8'  ,adPPYYba,  88  88       88   ,adPPYba,  
-  //  a8"     ""  a8P_____88  88  88     `8b   d8'   ""     `Y8  88  88       88  a8P_____88  
-  //  8b          8PP"""""""  88  88      `8b d8'    ,adPPPPP88  88  88       88  8PP"""""""  
-  //  "8a,   ,aa  "8b,   ,aa  88  88       `888'     88,    ,88  88  "8a,   ,a88  "8b,   ,aa  
-  //   `"Ybbd8"'   `"Ybbd8"'  88  88        `8'      `"8bbdP"Y8  88   `"YbbdP'Y8   `"Ybbd8"'  
-                                                                                            
+  //                          88  88  8b           d8            88
+  //                          88  88  `8b         d8'            88
+  //                          88  88   `8b       d8'             88
+  //   ,adPPYba,   ,adPPYba,  88  88    `8b     d8'  ,adPPYYba,  88  88       88   ,adPPYba,
+  //  a8"     ""  a8P_____88  88  88     `8b   d8'   ""     `Y8  88  88       88  a8P_____88
+  //  8b          8PP"""""""  88  88      `8b d8'    ,adPPPPP88  88  88       88  8PP"""""""
+  //  "8a,   ,aa  "8b,   ,aa  88  88       `888'     88,    ,88  88  "8a,   ,a88  "8b,   ,aa
+  //   `"Ybbd8"'   `"Ybbd8"'  88  88        `8'      `"8bbdP"Y8  88   `"YbbdP'Y8   `"Ybbd8"'
+
   getCellType(gridIndex: number) {
     return this.materials[gridIndex];
   }
