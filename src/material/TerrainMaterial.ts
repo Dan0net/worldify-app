@@ -457,47 +457,47 @@ export class TerrainMaterial extends MeshStandardMaterial {
       TerrainMaterial.instance = material;
       TerrainMaterial.instanceTransparent = materialTransparent;
 
-      // this.loadDataArrayTextures("low").then(
-      //   ({ textures, metadata, materialIndices }) => {
-      //     // console.log("a");
-      //     material.setTextures(
-      //       textures["albedo"],
-      //       textures["normal"],
-      //       textures["ao"],
-      //       textures["roughness"]
-      //     );
-      //     material.updateTextures();
+      this.loadDataArrayTextures("low").then(
+        ({ textures, metadata, materialIndices }) => {
+          // console.log("a");
+          material.setTextures(
+            textures["albedo"],
+            textures["normal"],
+            textures["ao"],
+            textures["roughness"]
+          );
+          material.updateTextures();
 
-      //     materialTransparent.setTextures(
-      //       textures["albedo"],
-      //       textures["normal"],
-      //       textures["ao"],
-      //       textures["roughness"]
-      //     );
-      //     materialTransparent.updateTextures();
+          materialTransparent.setTextures(
+            textures["albedo"],
+            textures["normal"],
+            textures["ao"],
+            textures["roughness"]
+          );
+          materialTransparent.updateTextures();
 
-      //     this.loadDataArrayTextures("high").then(
-      //       ({ textures, metadata, materialIndices }) => {
-      //         material.setTextures(
-      //           textures["albedo"],
-      //           textures["normal"],
-      //           textures["ao"],
-      //           textures["roughness"]
-      //         );
+          this.loadDataArrayTextures("high").then(
+            ({ textures, metadata, materialIndices }) => {
+              material.setTextures(
+                textures["albedo"],
+                textures["normal"],
+                textures["ao"],
+                textures["roughness"]
+              );
 
-      //         material.updateTextures();
+              material.updateTextures();
 
-      //         materialTransparent.setTextures(
-      //           textures["albedo"],
-      //           textures["normal"],
-      //           textures["ao"],
-      //           textures["roughness"]
-      //         );
-      //         materialTransparent.updateTextures();
-      //       }
-      //     );
-      //   }
-      // );
+              materialTransparent.setTextures(
+                textures["albedo"],
+                textures["normal"],
+                textures["ao"],
+                textures["roughness"]
+              );
+              materialTransparent.updateTextures();
+            }
+          );
+        }
+      );
     }
     return TerrainMaterial.instance;
   }

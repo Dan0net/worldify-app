@@ -3,6 +3,7 @@ import {
   BufferAttribute,
   BufferGeometry,
   Float32BufferAttribute,
+  Group,
   Mesh,
   MeshStandardMaterial,
   PlaneGeometry,
@@ -25,20 +26,37 @@ import { TERRAIN_GRID_SIZE_MARGIN, TERRAIN_SCALE } from "../utils/constants";
 import { getChunkWorkerPool } from "../workers/ChunkWorkerPool";
 import { BuildPreset } from "../builder/BuildPresets";
 
-export class ChunkMesh extends Mesh {
+export class ChunkMesh extends Group {
   private data;
   public weights = new Float32Array();
   public materials = new Float32Array();
   public lights = new Float32Array();
 
-  constructor(private isTransparent = false) {
-    const material = isTransparent
-      ? TerrainMaterial.getTransparentInstance()
-      : TerrainMaterial.getInstance();
-    super(new BufferGeometry(), material);
+  public solid = new Mesh(new BufferGeometry(), TerrainMaterial.getInstance());
+  public liquid = new Mesh(
+    new BufferGeometry(),
+    TerrainMaterial.getTransparentInstance()
+  );
 
-    this.castShadow = true;
-    this.receiveShadow = true;
+  public transparent = new Mesh(
+    new BufferGeometry(),
+    TerrainMaterial.getTransparentInstance()
+  );
+
+  constructor() {
+    super();
+
+    this.solid.castShadow = true;
+    this.solid.receiveShadow = true;
+    this.add(this.solid);
+
+    this.liquid.castShadow = false;
+    this.liquid.receiveShadow = true;
+    this.add(this.liquid);
+
+    this.transparent.castShadow = true;
+    this.transparent.receiveShadow = true;
+    this.add(this.transparent);
   }
 
   //  88                                    88
@@ -59,30 +77,36 @@ export class ChunkMesh extends Mesh {
     this.materials = new Float32Array(grid.materials);
     this.lights = new Float32Array(grid.lights);
 
-    for (let i = 0; i < this.materials.length; i++) {
-      if (this.materials[i] == 47) this.weights[i] = -0.001;
-    }
+    // for (let i = 0; i < this.materials.length; i++) {
+    //   if (this.materials[i] == 47) this.weights[i] = -0.001;
+    // }
   }
 
-  readLiquidGridFromString(chunkData: ChunkData) {
-    const _grid = base64ToUint16Array(chunkData.grid);
-    // console.log(_grid);
-    const grid = unpackGridArray(_grid);
+  // readLiquidGridFromString(chunkData: ChunkData) {
+  //   const _grid = base64ToUint16Array(chunkData.grid);
+  //   // console.log(_grid);
+  //   const grid = unpackGridArray(_grid);
 
-    this.weights = decompressUint8ToFloat32(grid.weights, -0.5, 0.5, 5);
-    this.materials = new Float32Array(grid.materials);
-    this.lights = new Float32Array(grid.lights);
+  //   this.weights = decompressUint8ToFloat32(grid.weights, -0.5, 0.5, 5);
+  //   this.materials = new Float32Array(grid.materials);
+  //   this.lights = new Float32Array(grid.lights);
 
-    for (let i = 0; i < this.materials.length; i++) {
-      if (this.materials[i] != 47 && this.weights[i] > 0)
-        this.weights[i] = -0.001;
-    }
-  }
+  //   // for (let i = 0; i < this.materials.length; i++) {
+  //   //   if (this.materials[i] != 47 && this.weights[i] > 0)
+  //   //     this.weights[i] = -0.001;
+  //   // }
+  // }
 
   copyGridFromChunkMesh(chunkMesh: ChunkMesh) {
     this.weights = new Float32Array(chunkMesh.weights);
     this.materials = new Float32Array(chunkMesh.materials);
     this.lights = new Float32Array(chunkMesh.materials);
+  }
+
+  copyGeometryFromChunkMesh(chunkMesh: ChunkMesh) {
+    this.solid.geometry = chunkMesh.solid.geometry;
+    this.liquid.geometry = chunkMesh.liquid.geometry;
+    this.transparent.geometry = chunkMesh.transparent.geometry;
   }
 
   gridToString(): string {
@@ -117,25 +141,48 @@ export class ChunkMesh extends Mesh {
         y: TERRAIN_GRID_SIZE_MARGIN,
         z: TERRAIN_GRID_SIZE_MARGIN,
       },
-      adjustedIndices: this.materials,
+      materials: this.materials,
       lightIncidents: new Float32Array(),
       lightIndices: new Float32Array(this.weights).fill(0),
     };
 
     // const data = await workerPool.enqueueTask(req);
 
-    const data = generateMeshWorker(
+    const solidData = generateMeshWorker(
       req.grid,
       req.gridSize,
-      req.adjustedIndices,
+      req.materials,
+      [0, 46],
       req.lightIncidents,
       req.lightIndices
     );
 
-    this.updateMesh(data);
+    this.updateMesh(this.solid, solidData);
+
+    const liquidData = generateMeshWorker(
+      req.grid,
+      req.gridSize,
+      req.materials,
+      [47, 47],
+      req.lightIncidents,
+      req.lightIndices
+    );
+
+    this.updateMesh(this.liquid, liquidData);
+
+    const transparentData = generateMeshWorker(
+      req.grid,
+      req.gridSize,
+      req.materials,
+      [48, 49],
+      req.lightIncidents,
+      req.lightIndices
+    );
+
+    this.updateMesh(this.transparent, transparentData);
   }
 
-  updateMesh(data) {
+  updateMesh(_mesh: Mesh, data) {
     // TODO set usage type of bufferattributes if the draw is main mesh, or temp mesh
     //     STATIC: The user will set the data once.
     // DYNAMIC: The user will set the data occasionally.
@@ -144,7 +191,7 @@ export class ChunkMesh extends Mesh {
     // TODO check if bufferatrtributes are big enough before calling dispose on geometry to reuse exisiting buffers
     // ie. if new buffer is smaller
 
-    this.geometry.dispose();
+    _mesh.geometry.dispose();
 
     const { indices, vertices, adjusted, bary, light, lightIndices, normal } =
       data;
@@ -161,7 +208,7 @@ export class ChunkMesh extends Mesh {
     const indexBufferAttribute = new BufferAttribute(indices, 1);
     buffer.setIndex(indexBufferAttribute);
     indexBufferAttribute.needsUpdate = true;
-    
+
     const positionBufferAttribute = new Float32BufferAttribute(vertices, 3);
     buffer.setAttribute("position", positionBufferAttribute);
     positionBufferAttribute.needsUpdate = true;
@@ -193,7 +240,7 @@ export class ChunkMesh extends Mesh {
 
     buffer.computeBoundsTree(); // todo calc only when in range
 
-    this.geometry = buffer;
+    _mesh.geometry = buffer;
   }
 
   //           88

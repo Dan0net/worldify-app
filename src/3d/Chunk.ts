@@ -23,7 +23,11 @@ import {
   worldToChunkPosition,
 } from "../utils/functions";
 
-import { TERRAIN_GRID_SIZE_OG, TERRAIN_SCALE, TERRAIN_SIZE } from "../utils/constants";
+import {
+  TERRAIN_GRID_SIZE_OG,
+  TERRAIN_SCALE,
+  TERRAIN_SIZE,
+} from "../utils/constants";
 import { BuildPreset } from "../builder/BuildPresets";
 import { VEC2_0, VEC3_0 } from "../utils/vector_utils";
 import { MatterialPallet } from "../material/MaterialPallet";
@@ -34,7 +38,7 @@ export class Chunk extends Object3D {
 
   public mesh = new ChunkMesh();
   public meshTemp = new ChunkMesh();
-  public meshLiquid = new ChunkMesh(true);
+  // public meshLiquid = new ChunkMesh(true);
 
   public meshGenerated = false;
 
@@ -49,14 +53,15 @@ export class Chunk extends Object3D {
     this.chunkCoord = { x: chunkData.x, y: chunkData.y, z: chunkData.z };
 
     this.mesh.readSolidGridFromString(chunkData);
-    this.meshLiquid.readLiquidGridFromString(chunkData);
+    // this.meshLiquid.readLiquidGridFromString(chunkData);
 
     this.add(this.mesh);
     this.add(this.meshTemp);
-    this.add(this.meshLiquid);
+    // this.add(this.meshLiquid);
     // this.meshLiquid.visible = false;
 
-    if (chunkData.heights) this.heights = Array.from(atob(chunkData.heights).split(','));
+    if (chunkData.heights)
+      this.heights = Array.from(atob(chunkData.heights).split(","));
     // console.log(this.heights)
 
     this.scale.set(TERRAIN_SCALE, TERRAIN_SCALE, TERRAIN_SCALE);
@@ -83,25 +88,24 @@ export class Chunk extends Object3D {
   async renderMesh(isPlacing = true) {
     const _mesh = isPlacing ? this.mesh : this.meshTemp;
     await _mesh.generateMeshData();
-    
-    
+
     if (isPlacing) this.meshGenerated = true;
 
     if (!isPlacing) this.isDefaultMeshTemp = false;
   }
 
-  async renderLiquidMesh() {
-    this.meshLiquid.generateMeshData();
-  }
+  // async renderLiquidMesh() {
+  //   this.meshLiquid.generateMeshData();
+  // }
 
   copyTemp() {
     if (!this.isDefaultMeshTemp) {
-      this.meshTemp.geometry.copy(this.mesh.geometry);
+      this.meshTemp.copyGeometryFromChunkMesh(this.mesh);
       this.isDefaultMeshTemp = true;
     }
   }
 
-  getHeight(x: number, z:number): number {
+  getHeight(x: number, z: number): number {
     // console.log(this.heights)
     return Number(this.heights[x + z * TERRAIN_GRID_SIZE_OG]) * TERRAIN_SCALE;
   }
@@ -145,7 +149,7 @@ export class Chunk extends Object3D {
       if (!drawFunc) {
         // if we set buildPreset to none, clear the temp grid
         // this.renderMesh(isPlacing);
-        this.meshTemp.geometry.copy(this.mesh.geometry);
+        this.meshTemp.copyGeometryFromChunkMesh(this.mesh);
         return true;
       }
     }
@@ -165,11 +169,7 @@ export class Chunk extends Object3D {
 
             const gridIndex = gridCellToIndex(this._gridCell);
 
-            const _change = _mesh.addValueToGrid(
-              gridIndex,
-              d,
-              buildConfig
-            );
+            const _change = _mesh.addValueToGrid(gridIndex, d, buildConfig);
 
             isChanged = isChanged || _change;
 
@@ -211,23 +211,22 @@ export class Chunk extends Object3D {
     return -a;
   }
 
-                                                                                  
-  //                          88  88  888888888888                                   
-  //                          88  88       88                                        
-  //                          88  88       88                                        
-  //   ,adPPYba,   ,adPPYba,  88  88       88  8b       d8  8b,dPPYba,    ,adPPYba,  
-  //  a8"     ""  a8P_____88  88  88       88  `8b     d8'  88P'    "8a  a8P_____88  
-  //  8b          8PP"""""""  88  88       88   `8b   d8'   88       d8  8PP"""""""  
-  //  "8a,   ,aa  "8b,   ,aa  88  88       88    `8b,d8'    88b,   ,a8"  "8b,   ,aa  
-  //   `"Ybbd8"'   `"Ybbd8"'  88  88       88      Y88'     88`YbbdP"'    `"Ybbd8"'  
-  //                                               d8'      88                       
-  //                                              d8'       88                       
+  //                          88  88  888888888888
+  //                          88  88       88
+  //                          88  88       88
+  //   ,adPPYba,   ,adPPYba,  88  88       88  8b       d8  8b,dPPYba,    ,adPPYba,
+  //  a8"     ""  a8P_____88  88  88       88  `8b     d8'  88P'    "8a  a8P_____88
+  //  8b          8PP"""""""  88  88       88   `8b   d8'   88       d8  8PP"""""""
+  //  "8a,   ,aa  "8b,   ,aa  88  88       88    `8b,d8'    88b,   ,a8"  "8b,   ,aa
+  //   `"Ybbd8"'   `"Ybbd8"'  88  88       88      Y88'     88`YbbdP"'    `"Ybbd8"'
+  //                                               d8'      88
+  //                                              d8'       88
   getGridType(p: Vector3) {
     worldToChunkPosition(p, this.position);
     p.round();
     const gridIndex = gridCellToIndex(p);
     const cellValue = this.mesh.getCellType(gridIndex);
-    
+
     return cellValue;
   }
 }

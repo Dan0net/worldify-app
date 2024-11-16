@@ -101,7 +101,7 @@ export class SurfaceNets {
     normal_accu[i][2] += n[2];
   };
 
-  createSurface(data, dims) {
+  createSurface(data, dims, materials, materialRange) {
     let buffer = new Int32Array(4096); // vertex buffer, which vertex is where
     var vertices: [number, number, number][] = [], // vertex values
       indicies: number[] = [], // material index, which index to sample material from
@@ -158,7 +158,9 @@ export class SurfaceNets {
           for (var k = 0; k < 2; ++k, idx += dims[0] * (dims[1] - 2))
             for (var j = 0; j < 2; ++j, idx += dims[0] - 2)
               for (var i = 0; i < 2; ++i, ++g, ++idx) {
-                var p = data[idx]; // get cell value from master grid
+                var q = materials[idx]; // get material ID
+                var p = data[idx] // get cell value from master grid if material Id in range
+                if(p > 0 && (q < materialRange[0] || q > materialRange[1])) p = -0.00001; // get cell value from master grid if material Id in range
                 grid[g] = p; // store cell value in local grid
                 mask |= p < 0 ? 1 << g : 0; // if cell value is less than 0 store a 1 in the mask for its position (g) in the grid, otherwise store 0
                 // store max cell value to assign the correct material from the grid to the vertex later on
@@ -249,6 +251,7 @@ export class SurfaceNets {
             //If we are on a boundary, skip it
             if (x[iu] === 0 || x[iv] === 0) {
               continue;
+              // ignore_face = true
             }
 
             //Otherwise, look up adjacent edges in buffer

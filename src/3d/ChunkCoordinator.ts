@@ -345,14 +345,14 @@ export class ChunkCoordinator extends Object3D {
     }
 
     chunk.renderMesh(true).then(() => {
-      chunk.renderLiquidMesh().then(() => {
-        this.attach(chunk.meshLiquid);
+      // chunk.renderLiquidMesh().then(() => {
+        // this.attach(chunk.meshLiquid);
         this.updateVisibleChunks();
         this.chunkRenderTimer = setTimeout(
           () => this.renderNextChunk(),
           CHUNK_RENDER_DELAY_MS
         );
-      });
+      // });
     });
   }
 
@@ -409,7 +409,8 @@ export class ChunkCoordinator extends Object3D {
           // console.log(chunkCoord, chunk.position)
           // add to collider
           this.chunkKeysCollidable.add(key);
-          this.castableChunkMeshs.attach(chunk.mesh);
+          this.castableChunkMeshs.attach(chunk.mesh.solid);
+          this.castableChunkMeshs.attach(chunk.mesh.transparent);
           // this.attach(chunk.meshLiquid);
           chunk.copyTemp();
           this.attach(chunk.meshTemp);
@@ -429,7 +430,8 @@ export class ChunkCoordinator extends Object3D {
         if (this.chunkKeysCollidable.has(key)) {
           // remove from collider
           this.chunkKeysCollidable.delete(key);
-          this.castableChunkMeshs.remove(chunk.mesh);
+          this.castableChunkMeshs.remove(chunk.mesh.solid);
+          this.castableChunkMeshs.remove(chunk.mesh.transparent);
           this.remove(chunk.meshTemp);
           colliderChanged = true;
         }

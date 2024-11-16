@@ -21,7 +21,8 @@ export function generateMeshWorker(
 	grid: Float32Array, 
 	gridSize: {x: number, y: number, z: number}, 
 	// terrainHeights, 
-	adjustedIndices: Float32Array, 
+	materials: Float32Array, 
+	materialRange: [number, number],
 	lightIncidents: Float32Array, 
 	lightIndices: Float32Array, 
 	regenerateLights = true, 
@@ -29,7 +30,7 @@ export function generateMeshWorker(
  ) {
 
 	const generatedSurface = 
-	surfaceNetEngine.createSurface( grid, [ gridSize.x, gridSize.y, gridSize.z ] );
+	surfaceNetEngine.createSurface( grid, [ gridSize.x, gridSize.y, gridSize.z ], materials, materialRange );
 
 	// TODO don't initialise new arrays, resize an exisiting buffer
 
@@ -40,7 +41,7 @@ export function generateMeshWorker(
 		const bary = new Float32Array( generatedSurface.faces.length * 3 * 3 ); //2 faces per generated face, 3 vertices, 3 uxw coords
 		const adjusted = new Int8Array( generatedSurface.faces.length * 3 * 3 ); //2 faces per generated face, 3 vertices, 3 material inds
 		const light = new Float32Array( generatedSurface.faces.length * 3 ); //2 faces per generated face, 3 vertices, 1 light value
-		const vertexNormalAccumulator = new Float32Array( generatedSurface.vertices.length * 3 ); //1 vertex, 3 normal axis
+		// const vertexNormalAccumulator = new Float32Array( generatedSurface.vertices.length * 3 ); //1 vertex, 3 normal axis
 		const normal = new Float32Array( generatedSurface.faces.length * 3 * 3 ); //2 faces per generated face, 3 vertices, 3 normal axis
 		
 		const stack: [number, number, number, number, boolean][] = [];
@@ -152,7 +153,7 @@ export function generateMeshWorker(
 			const p = ( z * ( gridSize.x * gridSize.y ) ) + ( Math.round( y ) * gridSize.z ) + x;
 			const l = lightIndices[p] ** 4;
 			
-			const m = adjustedIndices[mv];
+			const m = materials[mv];
 			return [m, l];
 		};
 
