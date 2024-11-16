@@ -201,7 +201,7 @@ export class Player extends Object3D {
   }
 
   checkChunkCellType() {
-    console.log(this.chunkCoordinator.getGridType(this.position));
+    // console.log(this.chunkCoordinator.getGridType(this.position));
   }
 
   collisionUpdate(delta: number) {

@@ -33,16 +33,19 @@
 export class SurfaceNets{
   private cube_edges: Int32Array;
   private edge_table: Int32Array;
-
+  // todo make this static and everything a factory
   constructor(){
-    this.cube_edges = new Int32Array(24);
-    this.edge_table = new Int32Array(256);
+    this.cube_edges = new Int32Array(24); //all 24 pairs of cells in 2x2x2 grid, 1 pair = 1 edge
+    this.edge_table = new Int32Array(256); //all permutations of 8 bit mask if there is an edge or not, to quickly look up which edges to compare
     
     var k = 0;
     for(var i=0; i<8; ++i) {
+      // iterate cell i in 2x2x2 grid
       for(var j=1; j<=4; j<<=1) {
-        var p = i^j;
-        if(i <= p) {
+        // iterate j, bit shift from 1,2,4
+        var p = i^j; // position p of cell to compare to
+        if(i <= p) { // only add to edges if the comparison cell index p is greater than the original cell index i
+          // increment k only when it's a valid pair to add, adding each pair of cells at a time
           this.cube_edges[k++] = i;
           this.cube_edges[k++] = p;
         }
@@ -52,11 +55,14 @@ export class SurfaceNets{
       //Initialize the intersection table.
       //  This is a 2^(cube configuration) ->  2^(edge configuration) map
       //  There is one entry for each possible cube configuration, and the output is a 12-bit vector enumerating all edges crossing the 0-level.
-    for(var i=0; i<256; ++i) {
-      var em = 0;
-      for(var j=0; j<24; j+=2) {
+    for(var i=0; i<256; ++i) { //256 total permutations of 2x2x2 (8 bit) grid mask
+      var em = 0; // edge map
+      for(var j=0; j<24; j+=2) { //12 comparisons of 24 total cells to compare, j jumps 2 each time
+        // look up origina cell index j and comparison cell index j+1
+        // find boolean if there is a 1 in i of the intersection table for each cell in the pair
         var a = !!(i & (1<<this.cube_edges[j]))
           , b = !!(i & (1<<this.cube_edges[j+1]));
+          // if a and b are different, there is a crossing, store a 1 in pair position j in the edge map, otherwise 0
         em |= a !== b ? (1 << (j >> 1)) : 0;
       }
       this.edge_table[i] = em;
@@ -64,22 +70,28 @@ export class SurfaceNets{
   }
   
   createSurface(data, dims) {
-      let buffer = new Int32Array(4096);
-      var vertices: [number, number, number][] = []
-        , faces: [number, number, number, number][] = []
-        , n = 0
-        , x = new Int32Array(3)
-        , R = new Int32Array([1, (dims[0]+1), (dims[0]+1)*(dims[1]+1)])
-        , grid = new Float32Array(8)
-        , buf_no = 1;
+      let buffer = new Int32Array(4096); // vertex buffer, which vertex is where
+      var vertices: [number, number, number][] = [] // vertex values
+        , indicies: number[] = [] // material index, which index to sample material from
+        , faces: [number, number, number, number][] = [] // face buffer, which vertices to generate faces from
+        , n = 0 // current index in flat 1D grid array
+        , x = new Int32Array(3) // current x,y,z coord in 3D grid array
+        , R = new Int32Array([1, (dims[0]+1), (dims[0]+1)*(dims[1]+1)]) // x,y,z offsets for each grid array dimension, e.g. step 1 in x, step size X+1 in y, step size X+1 * size Y*1 in z 
+        , grid = new Float32Array(8) // local grid values in a 2x2x2 grid, one contains the current coord
+        , buf_no = 1; // even or odd alternation
         
-      //Resize buffer if necessary 
+      //Resize buffer if necessary
+      //ensure it's big enough to store all vertices indexes
+      //unsure why it's 2*X*Y sizes
       if(R[2] * 2 > buffer.length) {
         buffer = new Int32Array(R[2] * 2);
       }
       
       //March over the voxel grid
       for(x[2]=0; x[2]<dims[2]-1; ++x[2], n+=dims[0], buf_no ^= 1, R[2]=-R[2]) {
+        // increment z grid coord
+        // increment n grid index
+        // so we reference the alternate corner the buf_no and R offset flip for z axis
       
         //m is the pointer into the buffer we are going to use.  
         //This is slightly obtuse because javascript does not have good support for packed data structures, so we must use typed arrays :(
@@ -87,20 +99,40 @@ export class SurfaceNets{
         var m = 1 + (dims[0]+1) * (1 + buf_no * (dims[1]+1));
         
         for(x[1]=0; x[1]<dims[1]-1; ++x[1], ++n, m+=2)
+          // increment y grid coord
+          // increment n grid index
+          // increment m buffer pointer by 2
+
         for(x[0]=0; x[0]<dims[0]-1; ++x[0], ++n, ++m) {
+          // increment x grid coord
+          // increment n grid index
+          // increment m buffer pointer
         
           //Read in 8 field values around this vertex and store them in an array
           //Also calculate 8-bit mask, like in marching cubes, so we can speed up sign checks later
-          var mask = 0, g = 0, idx = n;
+          // k,j,i = 0 references current grid cell
+          // k steps 1 in z, j 1 in y, i 1 in x
+          var mask = 0 // mask to check if sign is smaller than 0 or not for each cell
+            , g = 0 // mask position
+            , idx = n  // flat 1d grid array index of neighbouring cell
+            , p_max = -Infinity // max cell value
+            , idx_max = n; // cell index with max value (to calc what material to assign the vertex if there's a crossing)
           for(var k=0; k<2; ++k, idx += dims[0]*(dims[1]-2))
           for(var j=0; j<2; ++j, idx += dims[0]-2)      
           for(var i=0; i<2; ++i, ++g, ++idx) {
-            var p = data[idx];
-            grid[g] = p;
-            mask |= (p < 0) ? (1<<g) : 0;
+            var p = data[idx]; // get cell value from master grid
+            grid[g] = p; // store cell value in local grid
+            mask |= (p < 0) ? (1<<g) : 0; // if cell value is less than 0 store a 1 in the mask for its position (g) in the grid, otherwise store 0
+            // store max cell value to assign the correct material from the grid to the vertex later on
+            // this avoids vertices getting material ids from air cells
+            if (p > p_max) {
+              p_max = p;
+              idx_max = idx;
+            }
           }
           
           //Check for early termination if cell does not intersect boundary
+          // if the mask is all 0 or all 1 then there's no intersection here, move on
           if(mask === 0 || mask === 0xff) {
             continue;
           }
@@ -111,9 +143,11 @@ export class SurfaceNets{
             , e_count = 0;
             
           //For every edge of the cube...
+          // there are 12 possible edges because there are 12 possible pairs of neighbouring cells in the 2x2x2 grid
           for(var i=0; i<12; ++i) {
           
             //Use edge mask to check if it is crossed
+            // look up edge position i in the edge mask, if it's 1
             if(!(edge_mask & (1<<i))) {
               continue;
             }
@@ -154,6 +188,7 @@ export class SurfaceNets{
           //Add vertex to buffer, store pointer to vertex index in buffer
           buffer[m] = vertices.length;
           vertices.push(v);
+          indicies.push(idx_max);
 
           //Z-fighting fix for chunks, ignore faces on outermost grid cells that will be rendered by adjacent chunk
           if ((x[0] === 0 || x[1] === 0 || x[2] === 0) && i < 6) {
@@ -191,6 +226,6 @@ export class SurfaceNets{
       }
         
         //All done!  Return the result
-    return { vertices: vertices, faces: faces };
+    return { vertices, faces, indicies };
   }
 }

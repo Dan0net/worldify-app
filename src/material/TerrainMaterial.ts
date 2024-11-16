@@ -3,6 +3,7 @@
 import {
   Color,
   DataArrayTexture,
+  DoubleSide,
   LinearFilter,
   LinearMipMapLinearFilter,
   MeshStandardMaterial,
@@ -44,8 +45,10 @@ export class TerrainMaterial extends MeshStandardMaterial {
       metalness: 0.05,
       color: new Color(1, 0, 0),
       toneMapped: false,
-      transparent: isTransparent,
-      opacity: isTransparent ? 0.5 : 1.0,
+      // transparent: isTransparent,
+      transparent: true,
+      // opacity: isTransparent ? 0.5 : 1.0,
+      side: DoubleSide,
       defines: {
         // 'USE_MAP': '',
         // 'USE_UV': '',
@@ -257,9 +260,9 @@ export class TerrainMaterial extends MeshStandardMaterial {
         `
           vec3 pos = getPos();
           vec3 blending = getTriPlanarBlend( vNormal2 );
-          vec4 diffuseColor =  vec4( getTriPlanarTexture(mapArray, pos, blending).rgb, opacity );
-          // vec4 diffuseColor =  vec4( getTriPlanarTexture(mapArray, pos, blending).rgba );
-          // diffuseColor.a = 1.0 - diffuseColor.a;
+          // vec4 diffuseColor =  vec4( getTriPlanarTexture(mapArray, pos, blending).rgb, opacity );
+          vec4 diffuseColor =  vec4( getTriPlanarTexture(mapArray, pos, blending).rgba );
+          // diffuseColor.a = 0.5;
           // vec4 diffuseColor =  vec4(.5,.5,.5, 1.0);
           // vec4 diffuseColor = vec4(texture(map, vPos.xz * repeatScale).rgb, 1.0);
           // vec4 diffuseColor = vec4(texture(mapArray, vec3(vPos.xz * repeatScale, 1)).rgb , 1.0);

@@ -139,15 +139,16 @@ export function generateMeshWorker(
 			lightIndices.fill(1.0);
 		}
 
-		const getMaterialLightValue = (v) => {
+		const getMaterialLightValue = (v, mv) => {
 			const x = Math.round( v[ 0 ] );
 			const y = v[ 1 ];
 			const z = Math.round( v[ 2 ] );
 			// const terrainHeight = terrainHeights[ z * gridSize.x + x ];
 			
 			const p = ( z * ( gridSize.x * gridSize.y ) ) + ( Math.round( y ) * gridSize.z ) + x;
-			const m = adjustedIndices[p];
 			const l = lightIndices[p] ** 4;
+			
+			const m = adjustedIndices[mv];
 			return [m, l];
 		};
 
@@ -195,6 +196,10 @@ export function generateMeshWorker(
 			const v1 = generatedSurface.vertices[ f[ j[1] ] ];
 			const v2 = generatedSurface.vertices[ f[ j[2] ] ];
 
+			const mv0 = generatedSurface.indicies[ f[ j[0] ] ];
+			const mv1 = generatedSurface.indicies[ f[ j[1] ] ];
+			const mv2 = generatedSurface.indicies[ f[ j[2] ] ];
+
 			const i0 = i * 6 + o + 0;
 			const i1 = i * 6 + o + 1;
 			const i2 = i * 6 + o + 2;
@@ -204,9 +209,9 @@ export function generateMeshWorker(
 			accumulateVertexNormal(f[ j[1] ] * 3, n);
 			accumulateVertexNormal(f[ j[2] ] * 3, n);
 			
-			const [m0, l0] = getMaterialLightValue( v0 );
-			const [m1, l1] = getMaterialLightValue( v1 );
-			const [m2, l2] = getMaterialLightValue( v2 );
+			const [m0, l0] = getMaterialLightValue( v0, mv0 );
+			const [m1, l1] = getMaterialLightValue( v1, mv1 );
+			const [m2, l2] = getMaterialLightValue( v2, mv2 );
 
 			generateVertexInfo(i0 * 3, 0, v0, [m0, m1, m2]);
 			generateVertexInfo(i1 * 3, 1, v1, [m0, m1, m2]);

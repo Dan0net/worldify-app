@@ -51,7 +51,7 @@ async function createDataArrayTextures(textureSize, outputPath) {
         // Resize and process the image
         image = await sharp(mapPath)
           .resize(textureSize, textureSize)
-          // .ensureAlpha() // Ensure images have 4 channels (RGBA)
+          .ensureAlpha() // Ensure images have 4 channels (RGBA)
           .raw()
           .toBuffer({ resolveWithObject: true })
           .then(({ data, info }) => {
@@ -99,7 +99,6 @@ async function createDataArrayTextures(textureSize, outputPath) {
           .raw()
           .toBuffer({ resolveWithObject: true });
       }
-
       const { data, info } = image;
       const { width, height, channels } = info;
 

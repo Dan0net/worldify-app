@@ -864,6 +864,32 @@
       },
       "roughness": {
       }
+    },
+    "leaves_trans": {
+      "albedo": {
+        "path": "leaves_trans/ScatteredLeaves007_1K-PNG_Color.png"
+      },
+      "normal": {
+        "path": "leaves_trans/ScatteredLeaves007_1K-PNG_NormalGL.png"
+      },
+      "ao": {
+      },
+      "roughness": {
+        "path": "leaves_trans/ScatteredLeaves007_1K-PNG_Roughness.png"
+      }
+    },
+    "leaves2_trans": {
+      "albedo": {
+        "path": "leaves2_trans/ScatteredLeaves001_1K-PNG_Color.png"
+      },
+      "normal": {
+        "path": "leaves2_trans/ScatteredLeaves001_1K-PNG_NormalGL.png"
+      },
+      "ao": {
+      },
+      "roughness": {
+        "path": "leaves2_trans/ScatteredLeaves001_1K-PNG_Roughness.png"
+      }
     }
   }
 }
