@@ -421,7 +421,9 @@ export class ChunkCoordinator extends Object3D {
         if (this.chunkKeysVisible.has(key)) {
           // remove from visible
           this.chunkKeysVisible.delete(key);
-          this.remove(chunk.mesh);
+          this.remove(chunk.mesh.solid);
+          this.remove(chunk.mesh.liquid);
+          this.remove(chunk.mesh.transparent);
         }
 
         // console.log(key, 'c')
@@ -439,7 +441,9 @@ export class ChunkCoordinator extends Object3D {
         if (!this.chunkKeysVisible.has(key)) {
           // add to visible
           this.chunkKeysVisible.add(key);
-          this.attach(chunk.mesh);
+          this.attach(chunk.mesh.solid);
+          this.attach(chunk.mesh.liquid);
+          this.attach(chunk.mesh.transparent);
           // this.attach(chunk.meshLiquid);
           const v = new Vector3();
           chunk.mesh.getWorldPosition(v);

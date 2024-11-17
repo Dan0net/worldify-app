@@ -1,6 +1,7 @@
 // material/TerrainMaterial.ts
 
 import {
+  BackSide,
   Color,
   DataArrayTexture,
   DoubleSide,
@@ -44,12 +45,13 @@ export class TerrainMaterial extends MeshStandardMaterial {
       // metalnessMap: new Texture(),
       // roughness: 0.5,
       metalness: 0.05,
-      color: new Color(1, 0, 0),
+      // color: new Color(1, 0, 0),
       toneMapped: false,
       transparent: isTransparent,
       // transparent: true,
       // opacity: isTransparent ? 0.5 : 1.0,
       side: isTransparent ? DoubleSide : FrontSide,
+      shadowSide: DoubleSide,
       defines: {
         // 'USE_MAP': '',
         // 'USE_UV': '',
@@ -314,7 +316,8 @@ export class TerrainMaterial extends MeshStandardMaterial {
               // }
 
               vec3 texelNormal = normalize(getTriPlanarTexture( normalArray, pos, blending ).xyz) * 2.0 - 1.0;
-              texelNormal.xy *= normalScale;
+              // texelNormal.xy *= normalScale;
+              texelNormal.x = -texelNormal.x;
 
               // vec3 q0 = dFdx( - vViewPosition.xyz );
               // vec3 q1 = dFdy( - vViewPosition.xyz );
@@ -339,8 +342,9 @@ export class TerrainMaterial extends MeshStandardMaterial {
               // // normal = normalize( tbn * texelNormal );
               // // normal = normalize( tbn );
               // // diffuseColor = vec4(normal, 1.0);
-              normal = normalize( vNormal + (normalMatrix * texelNormal) );
-              // // normal = normalize( vNormal );
+              // normal = normalize( vNormal + (normalMatrix * texelNormal) );
+              // normal = normalize( vNormal + texelNormal );
+              normal = normalize( vNormal );
       #endif
           `
       );

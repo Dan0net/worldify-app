@@ -26,21 +26,24 @@ import { TERRAIN_GRID_SIZE_MARGIN, TERRAIN_SCALE } from "../utils/constants";
 import { getChunkWorkerPool } from "../workers/ChunkWorkerPool";
 import { BuildPreset } from "../builder/BuildPresets";
 
+const solidMaterial =  TerrainMaterial.getInstance();
+const transparentMaterial =  TerrainMaterial.getTransparentInstance();
+
 export class ChunkMesh extends Group {
   private data;
   public weights = new Float32Array();
   public materials = new Float32Array();
   public lights = new Float32Array();
 
-  public solid = new Mesh(new BufferGeometry(), TerrainMaterial.getInstance());
+  public solid = new Mesh(new BufferGeometry(), solidMaterial);
   public liquid = new Mesh(
     new BufferGeometry(),
-    TerrainMaterial.getTransparentInstance()
+    transparentMaterial
   );
 
   public transparent = new Mesh(
     new BufferGeometry(),
-    TerrainMaterial.getTransparentInstance()
+    transparentMaterial
   );
 
   constructor() {
@@ -147,6 +150,9 @@ export class ChunkMesh extends Group {
     };
 
     // const data = await workerPool.enqueueTask(req);
+
+    // TODO make these happen in paralell in surfacenets algo
+    // TODO ignore meshes that don't have info early on, before surfacenet algo
 
     const solidData = generateMeshWorker(
       req.grid,
