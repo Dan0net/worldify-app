@@ -27,7 +27,7 @@ import {
   VIEW_DISTANCE_MAX,
 } from "../utils/constants";
 import { chunkCoordsToKey, chunkCoordsToSurfaceKey } from "../utils/functions";
-import { ChunkCoord, ChunkData } from "../utils/interfaces";
+import { ChunkAPIResponse, ChunkCoord, ChunkData } from "../utils/interfaces";
 import { Chunk } from "./Chunk";
 import { InputController } from "../input/InputController";
 
@@ -178,14 +178,18 @@ export class ChunkCoordinator extends Object3D {
       "#:",
       chunkCoords.length
     );
-    const chunkDatas = await this.getOrLoadChunksXZ(chunkCoords);
+    const apiResponse = await this.getOrLoadChunksXZ(chunkCoords);
 
     let yCoordMax = -Infinity;
-    if (chunkDatas) {
-      chunkDatas.forEach((chunkData) => {
+    if (apiResponse) {
+      const {chunks, heights} = apiResponse;
+
+      chunks.forEach((chunkData) => {
         this.addChunk(chunkData, false);
         yCoordMax = Math.max(chunkData.y, yCoordMax);
       });
+
+
     } else {
       throw new Error("Chunks didnt load, panic!");
     }
@@ -228,10 +232,12 @@ export class ChunkCoordinator extends Object3D {
       "#:",
       chunkCoords.length
     );
-    const chunkDatas = await this.getOrLoadChunksXYZ(chunkCoords);
+    const apiResponse = await this.getOrLoadChunksXYZ(chunkCoords);
 
-    if (chunkDatas) {
-      chunkDatas.forEach((chunkData) => {
+    if (apiResponse) {
+      const {chunks, heights} = apiResponse;
+
+      chunks.forEach((chunkData) => {
         this.addChunk(chunkData, true);
       });
     } else {
@@ -248,7 +254,7 @@ export class ChunkCoordinator extends Object3D {
 
   private async getOrLoadChunksXZ(
     chunkCoords: ChunkCoord[]
-  ): Promise<ChunkData[] | void> {
+  ): Promise<ChunkAPIResponse | void> {
     const chunkPromise = this.api
       .getChunksXZ(chunkCoords, this.forceRegenerateChunks)
       .then((chunkDatas) => {
@@ -260,7 +266,7 @@ export class ChunkCoordinator extends Object3D {
 
   private async getOrLoadChunksXYZ(
     chunkCoords: ChunkCoord[]
-  ): Promise<ChunkData[] | void> {
+  ): Promise<ChunkAPIResponse | void> {
     const chunkPromise = this.api
       .getChunksXYZ(chunkCoords, this.forceRegenerateChunks)
       .then((chunkData) => {
