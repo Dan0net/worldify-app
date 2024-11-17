@@ -54,7 +54,7 @@ export class ChunkCoordinator extends Object3D {
   private requestedSurfaceChunkCoords = new Set<string>();
   private requestedChunkCoords = new Set<string>();
 
-  private forceRegenerateChunks = true;
+  private forceRegenerateChunks = false;
 
   constructor(private inputController: InputController) {
     super();

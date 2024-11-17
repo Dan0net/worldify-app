@@ -41,15 +41,15 @@ export class Lights extends Object3D {
     this.shadowLight.shadow.camera.top = 60;
     this.shadowLight.shadow.camera.bottom = -60;
     // TODO fix bias with normal maps
-    this.shadowLight.shadow.bias = 0.001;
+    this.shadowLight.shadow.bias = 0.0;
     this.shadowLight.shadow.normalBias = 0.5;
     this.add(this.shadowLight);
     // app.scene.add(this.shadowLight.target);
 
     const gui = getGUI();
     const lightFolder = gui.addFolder("lights");
-    lightFolder.add(this.shadowLight.shadow, "bias").min(0).max(1);
-    lightFolder.add(this.shadowLight.shadow, "normalBias").min(0).max(1);
+    lightFolder.add(this.shadowLight.shadow, "bias").min(-1).max(1);
+    lightFolder.add(this.shadowLight.shadow, "normalBias").min(-1).max(1);
 
     const cameraHelper = new CameraHelper(this.shadowLight.shadow.camera);
     this.add(cameraHelper);

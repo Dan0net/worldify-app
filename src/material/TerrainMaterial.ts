@@ -276,37 +276,22 @@ export class TerrainMaterial extends MeshStandardMaterial {
         "#include <normal_fragment_maps>",
         `
         #ifdef USE_NORMALMAP
-    vec3 normalSampleX = normalize(getTriAxisSmoothBlend(mapArray, pos.zy, vBary).xyz) * 2.0 - 1.0;
-    vec3 normalSampleY = normalize(getTriAxisSmoothBlend(mapArray, pos.xz, vBary).xyz) * 2.0 - 1.0;
-    vec3 normalSampleZ = normalize(getTriAxisSmoothBlend(mapArray, pos.xy, vBary).xyz) * 2.0 - 1.0;
-    
-    mat3 tbnX = mat3(
-        vec3(0, 0, 1),
-        vec3(0, 1, 0),
-        vec3(1, 0, 0)
-    );
-    mat3 tbnY = mat3(
-        vec3(1, 0, 0),
-        vec3(0, 0, 1),
-        vec3(0, 1, 0)
-    );
-    mat3 tbnZ = mat3(
-        vec3(1, 0, 0),
-        vec3(0, 1, 0),
-        vec3(0, 0, 1)
-    );
+    vec3 normalSampleX = normalize(getTriAxisSmoothBlend(normalArray, pos.zy, vBary).xyz) * 2.0 - 1.0;
+    vec3 normalSampleY = normalize(getTriAxisSmoothBlend(normalArray, pos.xz, vBary).xyz) * 2.0 - 1.0;
+    vec3 normalSampleZ = normalize(getTriAxisSmoothBlend(normalArray, pos.xy, vBary).xyz) * 2.0 - 1.0;
 
-    vec3 worldNormalX = tbnX * normalSampleX;
-    vec3 worldNormalY = tbnY * normalSampleY;
-    vec3 worldNormalZ = tbnZ * normalSampleZ;
+    vec3 tnormalX = vec3(normalSampleX.xy * normalScale + vNormal2.zy, abs(normalSampleX.z) * vNormal2.x);
+    vec3 tnormalY = vec3(normalSampleY.xy * normalScale + vNormal2.xz, abs(normalSampleY.z) * vNormal2.y);
+    vec3 tnormalZ = vec3(normalSampleZ.xy * normalScale + vNormal2.xy, abs(normalSampleZ.z) * vNormal2.z);
 
     vec3 blendedNormal = normalize(
-        worldNormalX * blending.x +
-        worldNormalY * blending.y +
-        worldNormalZ * blending.z
+        tnormalX.zyx * blending.x +
+        tnormalY.xzy * blending.y +
+        tnormalZ.xyz * blending.z
     );
 
-    normal = normalize((normalMatrix * blendedNormal).xyz);
+    normal =  normalize( normalMatrix * blendedNormal );
+              // diffuseColor = vec4(blendedNormal, 1.0);
 
               // vec2 posBlend = pos.xy;
               // if (blending.x >= blending.y && blending.x >= blending.z) {
@@ -315,9 +300,13 @@ export class TerrainMaterial extends MeshStandardMaterial {
               //   posBlend = pos.xz;
               // }
 
-              vec3 texelNormal = normalize(getTriPlanarTexture( normalArray, pos, blending ).xyz) * 2.0 - 1.0;
+              // vec3 texelNormal = normalize(getTriPlanarTexture( normalArray, pos, blending ).xyz) * 2.0 - 1.0;
               // texelNormal.xy *= normalScale;
-              texelNormal.x = -texelNormal.x;
+              // texelNormal.z *= sign(vNormal2.x);
+              // texelNormal.z *= sign(vNormal2.y);
+              // texelNormal.z *= sign(vNormal2.z);
+              // texelNormal.z *= normalScale;
+              // texelNormal.x = -texelNormal.x;
 
               // vec3 q0 = dFdx( - vViewPosition.xyz );
               // vec3 q1 = dFdy( - vViewPosition.xyz );
@@ -341,10 +330,12 @@ export class TerrainMaterial extends MeshStandardMaterial {
 
               // // normal = normalize( tbn * texelNormal );
               // // normal = normalize( tbn );
-              // // diffuseColor = vec4(normal, 1.0);
-              // normal = normalize( vNormal + (normalMatrix * texelNormal) );
-              // normal = normalize( vNormal + texelNormal );
-              normal = normalize( vNormal );
+              // normal = normalize( normalMatrix * (vNormal2 + texelNormal.xzy) );
+              // normal = normalize( normalMatrix * cross(vNormal2, texelNormal) );
+              // normal = normalize( normalMatrix * vNormal2 );
+              // normal = normalize( vNormal );
+
+              // diffuseColor = vec4(vNormal2 + texelNormal.xzy, 1.0);
       #endif
           `
       );
