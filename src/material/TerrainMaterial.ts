@@ -51,7 +51,7 @@ export class TerrainMaterial extends MeshStandardMaterial {
       // transparent: true,
       // opacity: isTransparent ? 0.5 : 1.0,
       side: isTransparent ? DoubleSide : FrontSide,
-      shadowSide: DoubleSide,
+      // shadowSide: DoubleSide,
       defines: {
         // 'USE_MAP': '',
         // 'USE_UV': '',

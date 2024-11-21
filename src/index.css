@@ -320,3 +320,33 @@ a8"     ""  ""     `Y8  88P'   `"8a  `8b     d8'  ""     `Y8  I8[    ""
 .inventory-panel-item.active {
   background-color: rgb(0, 179, 255);
 }
+
+/*                                              
+                                             
+                                             
+                                             
+88,dPYba,,adPYba,   ,adPPYYba,  8b,dPPYba,   
+88P'   "88"    "8a  ""     `Y8  88P'    "8a  
+88      88      88  ,adPPPPP88  88       d8  
+88      88      88  88,    ,88  88b,   ,a8"  
+88      88      88  `"8bbdP"Y8  88`YbbdP"'   
+                                88           
+                                88            */
+
+#map-ui-container {
+  z-index: 100;
+
+  position: relative;
+  height: 100vh;
+  width: 100vw;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.leaflet-container {
+  width: 500px;
+  height: 400px;
+}

@@ -1,4 +1,9 @@
-import { ChunkAPIResponse, ChunkCoord, ChunkData, UserData } from "../utils/interfaces";
+import {
+  ChunkAPIResponse,
+  ChunkCoord,
+  ChunkData,
+  UserData,
+} from "../utils/interfaces";
 import { useSessionStore } from "../store/SessionStore";
 
 // api/API.ts
@@ -74,22 +79,24 @@ export class API {
 
   async getChunksXYZ(
     chunkCoords: ChunkCoord[],
-    forceRegenerateChunks: boolean
+    forceRegenerateChunks: boolean,
+    storeNewChunks: boolean
   ): Promise<ChunkAPIResponse> {
     return this.fetchJsonHandler(
       `${this.apiUrl}/chunks/xyz`,
-      { chunkCoords, forceRegenerateChunks },
+      { chunkCoords, forceRegenerateChunks, storeNewChunks },
       false
     );
   }
 
   async getChunksXZ(
     chunkCoords: ChunkCoord[],
-    forceRegenerateChunks: boolean
+    forceRegenerateChunks: boolean,
+    storeNewChunks: boolean
   ): Promise<ChunkAPIResponse> {
     return this.fetchJsonHandler(
       `${this.apiUrl}/chunks/xz`,
-      { chunkCoords, forceRegenerateChunks },
+      { chunkCoords, forceRegenerateChunks, storeNewChunks },
       false
     );
   }

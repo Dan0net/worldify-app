@@ -11,8 +11,10 @@
     "material-bundle": "node material_bundler/bundle.js"
   },
   "dependencies": {
+    "leaflet": "^1.9.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-leaflet": "^4.2.1",
     "stats.js": "^0.17.0",
     "three": "^0.169.0",
     "three-mesh-bvh": "^0.8.2",
@@ -20,6 +22,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
+    "@types/leaflet": "^1.9.14",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
     "@types/three": "^0.169.0",

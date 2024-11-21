@@ -2,6 +2,7 @@ import { useGameStore, MenuStatus } from "../store/GameStore";
 import { HomeUI } from "./HomeUI";
 import { HudUI } from "./HudUI";
 import { InventoryUI } from "./InventoryUI";
+import { MapUI } from "./MapUI";
 
 function UI() {
   const { menuStatus } = useGameStore();
@@ -19,6 +20,8 @@ function UI() {
               <InventoryUI />
             </>
           );
+        case MenuStatus.Map:
+          return <MapUI />;
       }
     }
   };

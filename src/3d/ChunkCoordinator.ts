@@ -54,7 +54,8 @@ export class ChunkCoordinator extends Object3D {
   private requestedSurfaceChunkCoords = new Set<string>();
   private requestedChunkCoords = new Set<string>();
 
-  private forceRegenerateChunks = false;
+  private forceRegenerateChunks = true;
+  private storeNewChunks = true;
 
   constructor(private inputController: InputController) {
     super();
@@ -256,7 +257,7 @@ export class ChunkCoordinator extends Object3D {
     chunkCoords: ChunkCoord[]
   ): Promise<ChunkAPIResponse | void> {
     const chunkPromise = this.api
-      .getChunksXZ(chunkCoords, this.forceRegenerateChunks)
+      .getChunksXZ(chunkCoords, this.forceRegenerateChunks, this.storeNewChunks)
       .then((chunkDatas) => {
         return chunkDatas;
       });
@@ -268,7 +269,7 @@ export class ChunkCoordinator extends Object3D {
     chunkCoords: ChunkCoord[]
   ): Promise<ChunkAPIResponse | void> {
     const chunkPromise = this.api
-      .getChunksXYZ(chunkCoords, this.forceRegenerateChunks)
+      .getChunksXYZ(chunkCoords, this.forceRegenerateChunks, this.storeNewChunks)
       .then((chunkData) => {
         return chunkData;
       });

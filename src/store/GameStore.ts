@@ -7,7 +7,8 @@ export enum MenuStatus {
   Home,
   Inventory,
   Settings,
-  Login
+  Login,
+  Map
 }
 
 type GameStore = {

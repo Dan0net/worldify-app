@@ -194,5 +194,10 @@ export class InputController {
       // console.log(useGameStore.getState().isInventoryVisible);
       // this.exitPointerLock();
     }
+
+    if (event.key_func_name === "map") {
+      console.log(event)
+      useGameStore.setState({ menuStatus: MenuStatus.Map });
+    }
   };
 }

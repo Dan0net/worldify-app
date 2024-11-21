@@ -59,6 +59,7 @@ export const useSettingStore = create<SettingStore>()(
         inventory2: 'Tab',
         debug: 'Slash',
         fly_toggle: 'KeyF',
+        map: 'KeyM',
       }
     }),
     {
